@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, FileText, LayoutTemplate, MessageSquareText, ClipboardCheck, GraduationCap, Scale, Users, Briefcase,
-  KanbanSquare, Shield, Settings, Menu, X, Bell, LogOut,
+  KanbanSquare, Shield, Settings, Menu, X, Bell, LogOut, CalendarCheck, Presentation,
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { cx } from "./ui";
@@ -19,12 +19,13 @@ const NAV = [
   { href: "/assessments", label: "Assessment Academy", icon: ClipboardCheck, auth: true },
   { href: "/learn", label: "Learning Hub", icon: GraduationCap },
   { href: "/fair-hiring", label: "Fair Hiring", icon: Scale },
-  { href: "/coaches", label: "Coach Directory", icon: Users },
+  { href: "/coaches", label: "Career Coaches", icon: Users },
+  { href: "/sessions", label: "My Sessions", icon: CalendarCheck, auth: true },
 ];
 
 type N = { id: string; title: string; body: string; href: string | null; readAt: string | null };
 
-export function AppNav({ user }: { user: { name: string | null; email: string; role: string } | null }) {
+export function AppNav({ user }: { user: { name: string | null; email: string; role: string; isCoach?: boolean } | null }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState<N[]>([]);
@@ -49,6 +50,11 @@ export function AppNav({ user }: { user: { name: string | null; email: string; r
           </Link>
         );
       })}
+      {user?.isCoach && (
+        <Link href="/coach-portal" className={cx("mt-2 flex items-center gap-3 rounded-xl px-3 py-2 text-sm", path.startsWith("/coach-portal") ? "bg-cyan-500/15 text-cyan-100" : "text-cyan-300/80 hover:bg-cyan-500/10")}>
+          <Presentation size={17} />Coach Portal
+        </Link>
+      )}
       {user?.role === "ADMIN" && (
         <Link href="/admin" className={cx("mt-2 flex items-center gap-3 rounded-xl px-3 py-2 text-sm", path.startsWith("/admin") ? "bg-amber-500/15 text-amber-100" : "text-amber-300/80 hover:bg-amber-500/10")}>
           <Shield size={17} />Admin

@@ -16,12 +16,13 @@ export function CoachSubmit({ specialties }: { specialties: string[] }) {
       credentials: String(f.get("credentials") || "").split("\n").filter(Boolean).map((l) => { const [name, issuer, verifyUrl] = l.split("|").map((s) => s.trim()); return { name, issuer: issuer ?? "", verifyUrl: verifyUrl ?? "" }; }),
       priceFrom: f.get("priceFrom") ? Number(f.get("priceFrom")) : null, priceNote: f.get("priceNote") || undefined, bookingUrl: f.get("bookingUrl"), remote: f.get("remote") === "on", location: f.get("location") || undefined,
       languages: String(f.get("languages") || "").split(",").map((s) => s.trim()).filter(Boolean),
+      focus: f.getAll("focus"),
     };
     const r = await fetch("/api/coaches", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
     setBusy(false);
     if (r.ok) setDone(true); else { const d = await r.json().catch(() => ({})); setErr(d.error + (d.issues ? `: ${Object.keys(d.issues).join(", ")}` : "")); }
   }
-  if (done) return <Notice tone="cyan">Thanks! Your listing is pending review. Credentials stay marked &ldquo;self-reported&rdquo; until we verify them.</Notice>;
+  if (done) return <Notice tone="cyan">Thanks! Your listing is pending review. Credentials stay marked &ldquo;self-reported&rdquo; until we verify them. In the meantime, set your availability in the Coach Portal.</Notice>;
   return (
     <Card>
       <div className="flex items-center justify-between"><div><h2 className="font-semibold">Are you a career coach?</h2><p className="text-sm text-slate-400">Submit a listing for review.</p></div><button className="btn-ghost" onClick={() => setOpen(!open)}>{open ? "Close" : "Submit a listing"}</button></div>
@@ -30,6 +31,7 @@ export function CoachSubmit({ specialties }: { specialties: string[] }) {
         <input name="headline" required className="input" placeholder="Headline" aria-label="Headline" />
         <textarea name="bio" required minLength={40} className="input min-h-[90px] sm:col-span-2" placeholder="Bio (40+ characters)" aria-label="Bio" />
         <fieldset className="sm:col-span-2"><legend className="label">Specialties</legend><div className="flex flex-wrap gap-2">{specialties.map((s) => <label key={s} className="chip cursor-pointer"><input type="checkbox" name="specialties" value={s} className="accent-violet-500" />{s}</label>)}</div></fieldset>
+        <fieldset className="sm:col-span-2"><legend className="label">I help people find…</legend><div className="flex flex-wrap gap-2">{[["REMOTE", "Remote work"], ["HYBRID", "Hybrid work"], ["ONSITE", "On-site work"]].map(([v, l]) => <label key={v} className="chip cursor-pointer"><input type="checkbox" name="focus" value={v} className="accent-violet-500" />{l}</label>)}</div></fieldset>
         <textarea name="credentials" className="input min-h-[70px] sm:col-span-2" placeholder={"Credentials, one per line: Name | Issuer | verification URL (optional)"} aria-label="Credentials" />
         <input name="priceFrom" type="number" min={0} className="input" placeholder="Price from (USD, 0 = free)" aria-label="Price from" />
         <input name="priceNote" className="input" placeholder="Price note (e.g. sliding scale)" aria-label="Price note" />

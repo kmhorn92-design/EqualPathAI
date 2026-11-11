@@ -29,7 +29,24 @@ async function main() {
     const exists = await db.query.coaches.findFirst({ where: eq(schema.coaches.name, c.name) });
     if (!exists) await db.insert(schema.coaches).values({ ...c, bio: "This is a DEMO profile for development and testing. It does not represent a real person, credentials, or services.", credentials: [{ name: "Example Coaching Certificate (DEMO)", issuer: "Example Institute", verified: false }], bookingUrl: "https://example.com/demo-booking", remote: true, status: "APPROVED", isDemo: true });
   }
-  console.log("✓ demo coaches");
+  // DEMO focus areas, and one DEMO coach account so the in-app booking flow can be tested end to end.
+  const focus: Record<string, ("REMOTE" | "HYBRID" | "ONSITE")[]> = { "[DEMO] Jordan Ellis": ["REMOTE"], "[DEMO] Priya Nair": ["REMOTE", "HYBRID"], "[DEMO] Marcus Webb": ["HYBRID", "ONSITE"] };
+  for (const [name, f] of Object.entries(focus)) await db.update(schema.coaches).set({ focus: f }).where(eq(schema.coaches.name, name));
+  const coachEmail = "coach@equalpath.local";
+  let coachUser = await db.query.users.findFirst({ where: eq(schema.users.email, coachEmail) });
+  if (!coachUser) {
+    const coachPw = process.env.SEED_COACH_PASSWORD ?? randomBytes(9).toString("base64url") + "1a";
+    [coachUser] = await db.insert(schema.users).values({ email: coachEmail, name: "Jordan (DEMO coach)", passwordHash: await bcrypt.hash(coachPw, 12), onboardedAt: new Date() }).returning();
+    await db.insert(schema.consents).values({ userId: coachUser.id, termsAcceptedAt: new Date() });
+    await db.insert(schema.profiles).values({ userId: coachUser.id });
+    console.log(`✓ demo coach account: ${coachEmail} / ${coachPw}`);
+  }
+  const jordan = await db.query.coaches.findFirst({ where: eq(schema.coaches.name, "[DEMO] Jordan Ellis") });
+  if (jordan && !jordan.userId) {
+    await db.update(schema.coaches).set({ userId: coachUser.id, bookingEnabled: true, timezone: "America/Chicago", formats: ["video", "phone"] }).where(eq(schema.coaches.id, jordan.id));
+    await db.insert(schema.coachAvailability).values([1, 2, 3, 4, 5].flatMap((d) => [{ coachId: jordan.id, weekday: d, startMinute: 9 * 60, endMinute: 12 * 60 }, { coachId: jordan.id, weekday: d, startMinute: 13 * 60, endMinute: 17 * 60 }]));
+  }
+  console.log("✓ demo coaches (Jordan Ellis takes in-app bookings)");
 
   const articles = [
     { slug: "demo-reading-a-job-posting", title: "How to Read a Job Posting (DEMO article)", category: "Job search", summary: "Separate must-haves from nice-to-haves.", body: "DEMO ARTICLE for development.\n\nJob postings often list more qualifications than any one candidate has. Look for words like 'required' versus 'preferred'. If you meet most required qualifications, consider applying.\n\nUse Resume Studio to compare your resume against the posting and see which keywords you already demonstrate.", sourceUrl: "https://www.careeronestop.org/JobSearch/job-search.aspx" },

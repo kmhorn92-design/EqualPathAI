@@ -16,12 +16,14 @@ export const GET = handler(async ({ user }) => {
     db.select().from(schema.lessonProgress).where(eq(schema.lessonProgress.userId, user.id)),
     db.select().from(schema.chatThreads).where(eq(schema.chatThreads.userId, user.id)),
   ]);
+  const sessions = await db.select().from(schema.bookings).where(eq(schema.bookings.userId, user.id));
   const versions = resumes.length ? await db.select().from(schema.resumeVersions).where(inArray(schema.resumeVersions.resumeId, resumes.map((r) => r.id))) : [];
   const messages = threads.length ? await db.select().from(schema.chatMessages).where(inArray(schema.chatMessages.threadId, threads.map((t) => t.id))) : [];
   const out = {
     exportedAt: new Date().toISOString(), account: u, profile, consent,
     resumes: resumes.map((r) => ({ id: r.id, title: r.title, originalName: r.originalName, createdAt: r.createdAt, data: decryptJson(r.parsedEnc),
       versions: versions.filter((v) => v.resumeId === r.id).map((v) => ({ id: v.id, label: v.label, templateId: v.templateId, jobTitle: v.jobTitle, createdAt: v.createdAt, content: decryptJson(v.contentEnc), jobDescription: decryptOpt(v.jobDescEnc), analysis: v.analysisEnc ? decryptJson(v.analysisEnc) : null })) })),
+    coachingSessions: sessions.map(({ goalEnc, accessibilityEnc, coachNoteEnc, ...b }) => ({ ...b, goal: decryptOpt(goalEnc), accessibility: decryptOpt(accessibilityEnc), coachNote: decryptOpt(coachNoteEnc) })),
     applications: apps.map(({ notesEnc, ...a }) => ({ ...a, notes: decryptOpt(notesEnc) })), savedJobs: saved, assessmentAttempts: attempts, lessonProgress: lessons,
     coachThreads: threads.map((t) => ({ ...t, messages: messages.filter((m) => m.threadId === t.id).map((m) => ({ role: m.role, content: decryptOpt(m.contentEnc), createdAt: m.createdAt })) })),
   };

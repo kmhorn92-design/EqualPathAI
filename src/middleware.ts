@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 /** HTTP-level gate: protected pages require a session cookie (validated again server-side). */
-const PROTECTED = ["/dashboard", "/resume", "/tracker", "/coach", "/assessments", "/settings", "/admin", "/onboarding"];
+const PROTECTED = ["/dashboard", "/resume", "/tracker", "/coach", "/assessments", "/settings", "/admin", "/onboarding", "/sessions", "/coach-portal"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

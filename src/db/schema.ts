@@ -250,8 +250,52 @@ export const coaches = pgTable("coaches", {
   languages: text("languages").array().notNull().default(sql`'{}'`),
   status: moderationEnum("status").notNull().default("PENDING"),
   isDemo: boolean("is_demo").notNull().default(false),
+  /** The coach's own EqualPath account. Set when a signed-in user submits a listing; enables in-app booking. */
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  /** Work arrangements the coach specializes in helping with. */
+  focus: workModeEnum("focus").array().notNull().default(sql`'{}'`),
+  formats: text("formats").array().notNull().default(sql`'{video}'`), // video | phone | in-person
+  timezone: text("timezone").notNull().default("America/New_York"),
+  bookingEnabled: boolean("booking_enabled").notNull().default(false),
   createdAt: created(),
-});
+}, (t) => [uniqueIndex("coaches_user_uq").on(t.userId)]);
+
+/** Weekly recurring availability, in the coach's own time zone. */
+export const coachAvailability = pgTable("coach_availability", {
+  id: id(),
+  coachId: text("coach_id").notNull().references(() => coaches.id, { onDelete: "cascade" }),
+  weekday: integer("weekday").notNull(), // 0 = Sunday
+  startMinute: integer("start_minute").notNull(), // minutes after midnight
+  endMinute: integer("end_minute").notNull(),
+}, (t) => [index("availability_coach_idx").on(t.coachId)]);
+
+export const bookingStatusEnum = pgEnum("booking_status", ["REQUESTED", "CONFIRMED", "DECLINED", "CANCELLED", "COMPLETED"]);
+
+export const bookings = pgTable("bookings", {
+  id: id(),
+  coachId: text("coach_id").notNull().references(() => coaches.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sessionType: text("session_type").notNull(),
+  format: text("format").notNull(),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+  arrangement: workModeEnum("arrangement"),
+  goalEnc: text("goal_enc"),
+  accessibilityEnc: text("accessibility_enc"),
+  /** Only set if the client explicitly chose to share a resume version with this coach. */
+  sharedResumeVersionId: text("shared_resume_version_id").references(() => resumeVersions.id, { onDelete: "set null" }),
+  status: bookingStatusEnum("status").notNull().default("REQUESTED"),
+  meetingUrl: text("meeting_url"),
+  coachNoteEnc: text("coach_note_enc"),
+  clientTimezone: text("client_timezone"),
+  createdAt: created(),
+  updatedAt: updated(),
+}, (t) => [
+  index("bookings_coach_idx").on(t.coachId, t.startsAt),
+  index("bookings_user_idx").on(t.userId, t.startsAt),
+  // Defense in depth against double-booking the same start time (overlaps are also checked in a locked transaction).
+  uniqueIndex("bookings_active_slot_uq").on(t.coachId, t.startsAt).where(sql`status in ('REQUESTED','CONFIRMED')`),
+]);
 
 export const articles = pgTable("articles", {
   id: id(),

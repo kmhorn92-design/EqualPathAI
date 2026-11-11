@@ -8,6 +8,13 @@
       "when": 1793931319913,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794437474010,
+      "tag": "0001_coach_booking",
+      "breakpoints": true
     }
   ]
 }

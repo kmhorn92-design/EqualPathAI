@@ -30,7 +30,7 @@ SEED_ADMIN_PASSWORD="choose-a-strong-one" ENABLE_DEMO_JOBS=true npm run db:seed
 ENABLE_DEMO_JOBS=true npm run dev     # http://localhost:3000
 ```
 
-Sign in as the seeded admin (`admin@equalpath.local`) to see `/admin`, or create a regular account via **Get started**.
+Sign in as the seeded admin (`admin@equalpath.local`) to see `/admin`, or create a regular account via **Get started**. The seed also creates a DEMO coach account (`coach@equalpath.local`; set `SEED_COACH_PASSWORD`) linked to "[DEMO] Jordan Ellis", so you can test booking from both sides.
 
 ### Scripts
 
@@ -38,7 +38,9 @@ Sign in as the seeded admin (`admin@equalpath.local`) to see `/admin`, or create
 |---|---|
 | `npm run dev` / `build` / `start` | Next.js dev, production build, production server |
 | `npm test` | Unit tests (Vitest): crypto, parsing, analysis, anti-fabrication guard, exports, adapters, dedup, retry, grading |
-| `npx tsx scripts/e2e.mts` | End-to-end API walkthrough against a running dev server (`BASE=http://localhost:3000`) |
+| `npx tsx scripts/e2e.mts` | End-to-end API walkthrough against a running dev server (`BASE=http://localhost:3000`, start it with `ENABLE_DEMO_JOBS=true`) |
+| `npx tsx scripts/e2e-booking.mts` | End-to-end coach booking test (client + coach + security checks), after `npm run db:seed` |
+| `npx tsx scripts/e2e-booking-race.mts` | Fires 8 simultaneous requests for one slot and checks that exactly one succeeds |
 | `npm run typecheck` | TypeScript |
 | `npm run db:generate` | Generate a new SQL migration after editing `src/db/schema.ts` |
 | `npm run db:migrate` | Apply migrations in `drizzle/` |
@@ -60,7 +62,8 @@ Sign in as the seeded admin (`admin@equalpath.local`) to see `/admin`, or create
 | Assessment Academy (numerical, verbal, situational, customer service, technical, typing, STAR mock interview) | ✅ Fully functional; AI interview feedback needs an LLM key (rule-based STAR check always on) |
 | Learning Hub (7 lessons + quizzes + sources, admin-managed articles) | ✅ Fully functional |
 | Fair Hiring Resource Center | ✅ Fully functional (educational content + official links) |
-| Coach Directory (filters, submissions, moderation, credential verification) | ✅ Functional. Only DEMO coaches are seeded; real coaches must apply and be verified |
+| Career Coaches: directory with Remote / Hybrid / On-site focus filter, submissions, moderation, credential verification | ✅ Functional. Only DEMO coaches are seeded; real coaches must apply and be verified |
+| **In-app coach booking**: weekly availability, time-zone-aware slots, requests, confirm/decline/cancel/complete, meeting links, calendar (.ics) files, opt-in resume sharing, notifications, Coach Portal, My Sessions | ✅ Fully functional. Payments are arranged directly with coaches (no payment processing). Email/SMS reminders would need an email provider |
 | Application Tracker (kanban/list, drag-drop, notes, reminders → notifications, follow-up drafts) | ✅ Fully functional |
 | Privacy: consent, retention, export, deletion | ✅ Fully functional |
 | Admin dashboard (feed freshness, permissions, runs, alerts, dedup stats, moderation, aggregate usage) | ✅ Fully functional |
@@ -103,6 +106,13 @@ Each adapter (`src/lib/jobs/adapters/*`) implements `JobAdapter` and **declares*
 Pipeline per run: fetch (timeout, up to 3 retries with exponential backoff; 4xx permission errors are not retried) → restrict to permitted fields → validate (https apply URL, not expired, has title/company) → in-batch dedupe → cross-source dedupe on `canonical_key` (normalized company|title|location) plus a `(source, source_job_id)` unique index → upsert → listings the source no longer returns become `UNAVAILABLE` → freshness sweep (`EXPIRED` past deadline, `STALE` when not re-verified within `JOB_STALE_AFTER_HOURS`) → audit log + alerts.
 
 Search uses a weighted Postgres `tsvector` (GIN index) with `websearch_to_tsquery`, plus filters for industry, arrangement, location, experience, disclosed salary, company, job type, and recency.
+
+### Coach booking
+* **Who can coach:** any signed-in user can submit a listing; it's linked to their account and stays `PENDING` until an admin approves it. Coaches manage everything in **/coach-portal**: Remote/Hybrid/On-site focus, formats (video/phone/in-person), time zone, weekly availability, and booking on/off.
+* **Slots** (`src/lib/booking.ts`, unit-tested): availability is stored in the coach's IANA time zone, turned into UTC slots on a 30-minute grid (DST-safe), shown in the client's time zone, with a 12-hour minimum lead time and a 21-day horizon. A slot is offered only if the whole session fits in a window and doesn't overlap an active booking.
+* **No double-booking:** each request re-validates the slot inside a transaction holding a row lock on the coach (`SELECT … FOR UPDATE`). A partial unique index on `(coach_id, starts_at)` for active bookings adds a second guard.
+* **Lifecycle:** `REQUESTED → CONFIRMED | DECLINED`, `CONFIRMED → CANCELLED | COMPLETED`. Video sessions need an https meeting link to confirm. Clients can cancel up to 2 hours before a confirmed session. Every change notifies the other party in the app and is written to the audit log.
+* **Privacy:** goals, accessibility needs and coach notes are encrypted. Coaches see the client's name, never their email. A resume is visible only if the client chose a specific version for that session, and only while it's active. Sessions are included in data export and deleted with the account.
 
 ### AI safety guarantees (enforced in code)
 * **No fabrication.** AI rewrites go through `guardSuggestion`, which rejects any suggestion that adds numbers/metrics or skill keywords not already in the resume, or that balloons the length. Blocked suggestions are counted and shown to the user. AI-assisted parsing keeps only text grounded in the uploaded document.
