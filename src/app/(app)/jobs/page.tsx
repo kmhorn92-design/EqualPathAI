@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { Search, SlidersHorizontal, ExternalLink, Radio } from "lucide-react";
+import { Search, SlidersHorizontal, ExternalLink, Radio, LayoutGrid, Globe, Shuffle, Building2 } from "lucide-react";
 import { getUser } from "@/lib/auth";
 import { jobQuerySchema } from "@/lib/validation";
 import { demoAllowed, facets, PAGE_SIZE, searchJobs } from "@/lib/jobs/search";
 import { DAILY_TARGET } from "@/lib/jobs/registry";
 import { externalSearchLinks } from "@/lib/jobs/adapters/partners";
-import { Empty, Notice, PageHeader } from "@/components/ui";
+import { Empty, Notice, PageHeader, cx } from "@/components/ui";
 import { JobCard, type JobRow } from "@/components/jobs/JobCard";
 
 export const metadata = { title: "Daily Job Board" };
@@ -30,7 +30,18 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
         {f.active < DAILY_TARGET && <span className="text-xs text-amber-200/80">Below our daily goal of {DAILY_TARGET}. We only show what authorized sources actually provide.</span>}
       </div>
 
+      <nav aria-label="Work arrangement" className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {([[undefined, "All jobs", LayoutGrid], ["REMOTE", "Remote", Globe], ["HYBRID", "Hybrid", Shuffle], ["ONSITE", "On-site", Building2]] as const).map(([id, label, Icon]) => {
+          const on = (q.workMode ?? undefined) === id;
+          return (
+            <Link key={label} href={link({ workMode: id, page: undefined })} aria-current={on ? "page" : undefined}
+              className={cx("flex items-center gap-3 rounded-2xl border px-4 py-3 transition", on ? "border-cyan-400/60 bg-gradient-to-r from-violet-500/20 to-cyan-500/15 text-white shadow-[0_0_30px_-10px_rgba(34,211,238,.8)]" : "border-white/10 bg-white/[0.02] text-slate-300 hover:border-white/25")}>
+              <Icon size={20} className={on ? "text-cyan-300" : "text-slate-500"} /><span className="font-semibold">{label}</span>
+            </Link>);
+        })}
+      </nav>
       <form method="get" action="/jobs" className="glass mb-6 grid gap-3 p-4 md:grid-cols-6" role="search">
+        {q.workMode && <input type="hidden" name="workMode" value={q.workMode} />}
         <div className="relative md:col-span-3"><Search size={16} className="absolute left-3 top-3 text-slate-500" /><input name="q" defaultValue={q.q} className="input pl-9" placeholder="Title, skill, or keyword" aria-label="Search jobs" /></div>
         <input name="location" defaultValue={q.location} className="input md:col-span-2" placeholder="City or state" aria-label="Location" />
         <button className="btn-primary">Search</button>
@@ -38,7 +49,6 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
           <summary className="flex cursor-pointer list-none items-center gap-2 text-sm text-slate-400"><SlidersHorizontal size={14} />Filters</summary>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <select name="industry" defaultValue={q.industry ?? ""} className="input" aria-label="Industry"><option value="">Any industry</option>{f.industries.sort().map((i) => <option key={i}>{i}</option>)}</select>
-            <select name="workMode" defaultValue={q.workMode ?? ""} className="input" aria-label="Work arrangement"><option value="">Remote, hybrid, or on-site</option><option value="REMOTE">Remote</option><option value="HYBRID">Hybrid</option><option value="ONSITE">On-site</option></select>
             <select name="experience" defaultValue={q.experience ?? ""} className="input" aria-label="Experience level"><option value="">Any experience</option>{f.levels.sort().map((l) => <option key={l}>{l}</option>)}</select>
             <select name="days" defaultValue={q.days?.toString() ?? ""} className="input" aria-label="Posted within"><option value="">Any posting date</option><option value="1">Past 24 hours</option><option value="3">Past 3 days</option><option value="7">Past week</option><option value="30">Past month</option></select>
             <input name="salaryMin" type="number" min={0} step={1000} defaultValue={q.salaryMin} className="input" placeholder="Min salary (disclosed only)" aria-label="Minimum salary" />

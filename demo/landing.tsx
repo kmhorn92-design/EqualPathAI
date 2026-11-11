@@ -3,7 +3,7 @@
  * Uses the app's real lexicon (findKeywords) and fabrication guard (guardSuggestion).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, ArrowDown, ShieldCheck, Sparkles, Check, X, FileText, Briefcase, KanbanSquare, GraduationCap, Wand2, Lock, Eye, HeartHandshake } from "lucide-react";
+import { Globe, Shuffle, Building2, Users, ArrowRight, ArrowDown, ShieldCheck, Sparkles, Check, X, FileText, Briefcase, KanbanSquare, GraduationCap, Wand2, Lock, Eye, HeartHandshake } from "lucide-react";
 import { findKeywords } from "@/lib/resume/lexicon";
 import { guardSuggestion } from "@/lib/resume/analyze";
 
@@ -231,7 +231,7 @@ function Journey() {
 }
 
 /* ---------- page ---------- */
-export function Landing({ onEnter }: { onEnter: (to?: "studio" | "jobs" | "practice" | "learn") => void }) {
+export function Landing({ onEnter, onCoaches }: { onEnter: (to?: "studio" | "jobs" | "practice" | "learn") => void; onCoaches: (a?: "REMOTE" | "HYBRID" | "ONSITE") => void }) {
   const [leaving, setLeaving] = useState(false);
   const enter = (to?: "studio" | "jobs" | "practice" | "learn") => {
     if (reduced()) return onEnter(to);
@@ -300,6 +300,28 @@ export function Landing({ onEnter }: { onEnter: (to?: "studio" | "jobs" | "pract
         <Journey />
       </section>
 
+      {/* COACHES */}
+      <section className="relative overflow-hidden py-24">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-96 w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-500/10 blur-[120px]" />
+        <div className="relative mx-auto max-w-6xl px-6">
+          <Reveal><p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">Human support</p>
+            <h2 className="mt-2 max-w-3xl text-4xl font-semibold md:text-5xl">Meet a coach for the way <span className="gradient-text">you want to work.</span></h2>
+            <p className="mt-3 max-w-2xl text-slate-400">Remote, hybrid or on-site: each search needs a different strategy. Pick yours and meet coaches who focus on it. Intro calls are free.</p></Reveal>
+          <div className="mt-10 grid gap-5 md:grid-cols-3">{([
+            ["REMOTE", "Remote", Globe, "Spot legitimate work-from-home roles, avoid scams, and ace video interviews."],
+            ["HYBRID", "Hybrid", Shuffle, "Understand in-office expectations, telework eligibility, and commute trade-offs."],
+            ["ONSITE", "On-site", Building2, "Plan certifications, shifts and commutes, and prepare for in-person interviews."],
+          ] as const).map(([id, label, Icon, body], i) => (
+            <Reveal key={id} delay={i * 120}><Tilt className="glass h-full p-7">
+              <button onClick={() => onCoaches(id)} className="group block h-full w-full text-left">
+                <div className="mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-cyan-500/30 to-violet-500/20 text-cyan-200 ring-1 ring-white/10 transition group-hover:scale-110"><Icon size={22} /></div>
+                <h3 className="text-xl font-semibold">{label} job search</h3><p className="mt-2 text-slate-400">{body}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm text-cyan-300">Meet {label.toLowerCase()} coaches <ArrowRight size={14} className="transition group-hover:translate-x-1" /></span>
+              </button></Tilt></Reveal>))}</div>
+          <Reveal delay={300} className="mt-8 text-center"><button onClick={() => onCoaches()} className="btn-ghost"><Users size={16} />Browse all coaches</button></Reveal>
+        </div>
+      </section>
+
       {/* PRINCIPLES */}
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="grid gap-5 md:grid-cols-3">{[
@@ -327,6 +349,7 @@ export function Landing({ onEnter }: { onEnter: (to?: "studio" | "jobs" | "pract
           <div className="mt-10 flex flex-wrap justify-center gap-2 text-sm">
             {([["studio", "Resume Studio"], ["jobs", "Job Board"], ["practice", "Practice tests"], ["learn", "Learning Hub"]] as const).map(([to, l]) => (
               <button key={to} onClick={() => enter(to)} className="chip px-3 py-1.5 hover:border-cyan-300/50 hover:text-white">{l} →</button>))}
+            <button onClick={() => onCoaches()} className="chip px-3 py-1.5 hover:border-cyan-300/50 hover:text-white">Career Coaches →</button>
           </div>
           <p className="mx-auto mt-8 max-w-md text-xs text-slate-500"><GraduationCap size={12} className="mr-1 inline" />Interactive demo. Sample data stays in this browser tab, and nothing is sent anywhere.</p>
         </Reveal>

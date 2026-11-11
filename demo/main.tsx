@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ArrowRight, Check, X, Wand2, FileText, Briefcase, KanbanSquare, ClipboardCheck, GraduationCap, Scale, Home, ShieldCheck,
-  AlertTriangle, Columns2, Upload, Sparkles, MapPin, Clock, Bookmark, BookmarkCheck, ExternalLink, Info, Plus, Lightbulb, Copy, RotateCcw, Award,
+  AlertTriangle, Columns2, Users, Globe, Shuffle, Building2, LayoutGrid, Upload, Sparkles, MapPin, Clock, Bookmark, BookmarkCheck, ExternalLink, Info, Plus, Lightbulb, Copy, RotateCcw, Award,
 } from "lucide-react";
 import { structureText, resumeCorpus } from "@/lib/resume/parse";
 import { analyzeAgainstJob, ruleSuggestions, applySuggestions, guardSuggestion } from "@/lib/resume/analyze";
@@ -26,6 +26,7 @@ import { ResumePreview } from "@/components/resume/ResumePreview";
 import { HeroVisual } from "@/components/landing/HeroVisual";
 import { Card, Notice, Progress, DemoBadge, cx, Empty } from "@/components/ui";
 import { Landing } from "./landing";
+import { Coaches, COACHES, type Booking, type Arrangement } from "./coaches";
 
 const SAMPLE_RESUME = `Jordan Rivera (DEMO)
 Baltimore, MD | (410) 555-0134 | jordan.demo@example.com | linkedin.com/in/demo
@@ -60,9 +61,9 @@ Requirements:
 - Must be proficient in Microsoft Office
 Preferred: Bilingual (Spanish), HIPAA knowledge.`;
 
-type View = "home" | "studio" | "jobs" | "tracker" | "practice" | "learn" | "fair";
+type View = "home" | "studio" | "jobs" | "coaches" | "tracker" | "practice" | "learn" | "fair";
 const NAV: { id: View; label: string; icon: typeof Home }[] = [
-  { id: "home", label: "Home", icon: Home }, { id: "studio", label: "Resume Studio", icon: FileText }, { id: "jobs", label: "Job Board", icon: Briefcase },
+  { id: "home", label: "Home", icon: Home }, { id: "studio", label: "Resume Studio", icon: FileText }, { id: "jobs", label: "Job Board", icon: Briefcase }, { id: "coaches", label: "Career Coaches", icon: Users },
   { id: "tracker", label: "Applications", icon: KanbanSquare }, { id: "practice", label: "Assessment Academy", icon: ClipboardCheck },
   { id: "learn", label: "Learning Hub", icon: GraduationCap }, { id: "fair", label: "Fair Hiring", icon: Scale },
 ];
@@ -98,6 +99,9 @@ function DemoApp() {
   }, []);
   const [resume, setResume] = useState<ResumeData>(() => structureText(SAMPLE_RESUME));
   const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [coachArr, setCoachArr] = useState<Arrangement | undefined>();
+  const toCoaches = (a?: Arrangement) => { setCoachArr(a); go("coaches"); };
   const [apps, setApps] = useState<App[]>([
     { id: "a1", company: "DEMO Northwind Health", title: "Patient Access Representative", status: "APPLIED", appliedAt: new Date(Date.now() - 9 * 864e5).toISOString(), updatedAt: new Date().toISOString() },
     { id: "a2", company: "DEMO Contoso Labs", title: "Support Specialist", status: "INTERVIEWING", appliedAt: new Date(Date.now() - 14 * 864e5).toISOString(), updatedAt: new Date().toISOString() },
@@ -111,20 +115,21 @@ function DemoApp() {
       <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-ink/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3">
           <button onClick={() => go("home")} className="flex shrink-0 items-center gap-2" aria-label="EqualPath AI home"><Mark /><span className="hidden whitespace-nowrap font-display text-lg font-semibold sm:inline">EqualPath <span className="gradient-text">AI</span></span></button>
-          <span className="chip-amber hidden sm:inline-flex">Interactive demo · sample data</span>
+          <span className="chip-amber hidden whitespace-nowrap 2xl:inline-flex">Interactive demo · sample data</span>
           <nav aria-label="Main" className="ml-auto flex gap-1 overflow-x-auto">
             {NAV.slice(1).map(({ id, label, icon: Icon }) => (
-              <button key={id} onClick={() => go(id)} aria-current={view === id ? "page" : undefined}
-                className={cx("flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition", view === id ? "bg-gradient-to-r from-violet-500/25 to-cyan-500/10 text-white ring-1 ring-violet-400/30" : "text-slate-400 hover:text-white")}>
-                <Icon size={15} /><span className="hidden md:inline">{label}</span>
+              <button key={id} onClick={() => go(id)} aria-current={view === id ? "page" : undefined} aria-label={label} title={label}
+                className={cx("flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition", view === id ? "bg-gradient-to-r from-violet-500/25 to-cyan-500/10 text-white ring-1 ring-violet-400/30" : "text-slate-400 hover:text-white")}>
+                <Icon size={15} /><span className="hidden whitespace-nowrap xl:inline">{label}</span>
               </button>))}
           </nav>
         </div>
       </header>
-      {view === "home" && <main id="main" className="relative"><Landing onEnter={(to) => go(to ?? "studio")} /></main>}
+      {view === "home" && <main id="main" className="relative"><Landing onEnter={(to) => go(to ?? "studio")} onCoaches={toCoaches} /></main>}
       {view !== "home" && <main id="main" className="relative mx-auto max-w-7xl px-4 py-8">
         {view === "studio" && <Studio resume={resume} setResume={setResume} />}
-        {view === "jobs" && <Jobs jobs={jobs} resume={resume} saved={saved} setSaved={setSaved} track={track} />}
+        {view === "jobs" && <Jobs jobs={jobs} resume={resume} saved={saved} setSaved={setSaved} track={track} toCoaches={toCoaches} />}
+        {view === "coaches" && <Coaches key={coachArr ?? "ALL"} initial={coachArr} bookings={bookings} setBookings={setBookings} />}
         {view === "tracker" && <Tracker apps={apps} setApps={setApps} />}
         {view === "practice" && <Practice />}
         {view === "learn" && <Learn />}
@@ -316,7 +321,7 @@ function Studio({ resume, setResume }: { resume: ResumeData; setResume: (r: Resu
 const ago = (d: Date | null | undefined) => { if (!d) return "unknown"; const h = (Date.now() - d.getTime()) / 36e5; return h < 1 ? "just now" : h < 24 ? `${Math.floor(h)}h ago` : `${Math.floor(h / 24)}d ago`; };
 const money = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
-function Jobs({ jobs, resume, saved, setSaved, track }: { jobs: Job[]; resume: ResumeData; saved: Set<string>; setSaved: (s: Set<string>) => void; track: (j: Job) => void }) {
+function Jobs({ jobs, resume, saved, setSaved, track, toCoaches }: { jobs: Job[]; resume: ResumeData; saved: Set<string>; setSaved: (s: Set<string>) => void; track: (j: Job) => void; toCoaches: (a?: Arrangement) => void }) {
   const [q, setQ] = useState(""); const [mode, setMode] = useState(""); const [ind, setInd] = useState(""); const [onlySaved, setOnlySaved] = useState(false); const [min, setMin] = useState("");
   const [open, setOpen] = useState<string | null>(null); const [tracked, setTracked] = useState<Set<string>>(new Set());
   const industries = [...new Set(jobs.map((j) => j.industry).filter(Boolean))] as string[];
@@ -325,9 +330,23 @@ function Jobs({ jobs, resume, saved, setSaved, track }: { jobs: Job[]; resume: R
     <>
       <Head kicker="Daily Job Board" title="Verified, currently open jobs" sub="In the full app, listings come only from authorized sources (USAJOBS, Adzuna, employer Greenhouse/Lever boards and approved feeds) and show the true live count." />
       <div className="mb-5"><Notice tone="amber">These <b>{jobs.length} listings are DEMO data</b>. They aren&apos;t real jobs, and the production app never mixes them into live results or counts. They went through the real validation and de-duplication pipeline.</Notice></div>
-      <div className="glass mb-6 grid gap-3 p-4 md:grid-cols-6" role="search">
+      <p className="mb-2 text-sm text-slate-400">Where do you want to work?</p>
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Work arrangement">
+        {([["", "All jobs", LayoutGrid], ["REMOTE", "Remote", Globe], ["HYBRID", "Hybrid", Shuffle], ["ONSITE", "On-site", Building2]] as const).map(([id, label, Icon]) => {
+          const n = jobs.filter((j) => !id || j.workMode === id).length;
+          return (
+            <button key={label} role="radio" aria-checked={mode === id} onClick={() => setMode(id)}
+              className={cx("flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition", mode === id ? "border-cyan-400/60 bg-gradient-to-r from-violet-500/20 to-cyan-500/15 text-white shadow-[0_0_30px_-10px_rgba(34,211,238,.8)]" : "border-white/10 bg-white/[0.02] text-slate-300 hover:border-white/25")}>
+              <Icon size={20} className={mode === id ? "text-cyan-300" : "text-slate-500"} /><span><span className="block font-semibold">{label}</span><span className="text-xs text-slate-400">{n} listing{n === 1 ? "" : "s"}</span></span>
+            </button>);
+        })}
+      </div>
+      {mode && (() => { const c = COACHES.filter((x) => x.focus.includes(mode as Arrangement)).length; return (
+        <button onClick={() => toCoaches(mode as Arrangement)} className="mb-4 flex w-full items-center gap-3 rounded-xl border border-violet-400/25 bg-violet-500/[0.07] px-4 py-3 text-left text-sm hover:border-violet-400/50">
+          <Users size={18} className="shrink-0 text-violet-300" /><span className="flex-1">Want help with a {mode === "ONSITE" ? "on-site" : mode.toLowerCase()} job search? <b>{c} career coaches</b> focus on {mode === "ONSITE" ? "on-site" : mode.toLowerCase()} roles.</span><ArrowRight size={15} className="text-violet-300" />
+        </button>); })()}
+      <div className="glass mb-6 grid gap-3 p-4 md:grid-cols-5" role="search">
         <input className="input md:col-span-2" placeholder="Title, skill, or keyword" aria-label="Search" value={q} onChange={(e) => setQ(e.target.value)} />
-        <select className="input" aria-label="Arrangement" value={mode} onChange={(e) => setMode(e.target.value)}><option value="">Remote / hybrid / on-site</option><option value="REMOTE">Remote</option><option value="HYBRID">Hybrid</option><option value="ONSITE">On-site</option></select>
         <select className="input" aria-label="Industry" value={ind} onChange={(e) => setInd(e.target.value)}><option value="">Any industry</option>{industries.map((i) => <option key={i}>{i}</option>)}</select>
         <input className="input" type="number" step={5000} placeholder="Min salary (disclosed)" aria-label="Minimum salary" value={min} onChange={(e) => setMin(e.target.value)} />
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-violet-500" checked={onlySaved} onChange={(e) => setOnlySaved(e.target.checked)} />Saved only</label>
