@@ -25,6 +25,7 @@ import { LESSONS } from "@/content/lessons";
 import { ResumePreview } from "@/components/resume/ResumePreview";
 import { HeroVisual } from "@/components/landing/HeroVisual";
 import { Card, Notice, Progress, DemoBadge, cx, Empty } from "@/components/ui";
+import { Landing } from "./landing";
 
 const SAMPLE_RESUME = `Jordan Rivera (DEMO)
 Baltimore, MD | (410) 555-0134 | jordan.demo@example.com | linkedin.com/in/demo
@@ -61,7 +62,7 @@ Preferred: Bilingual (Spanish), HIPAA knowledge.`;
 
 type View = "home" | "studio" | "jobs" | "tracker" | "practice" | "learn" | "fair";
 const NAV: { id: View; label: string; icon: typeof Home }[] = [
-  { id: "home", label: "Overview", icon: Home }, { id: "studio", label: "Resume Studio", icon: FileText }, { id: "jobs", label: "Job Board", icon: Briefcase },
+  { id: "home", label: "Home", icon: Home }, { id: "studio", label: "Resume Studio", icon: FileText }, { id: "jobs", label: "Job Board", icon: Briefcase },
   { id: "tracker", label: "Applications", icon: KanbanSquare }, { id: "practice", label: "Assessment Academy", icon: ClipboardCheck },
   { id: "learn", label: "Learning Hub", icon: GraduationCap }, { id: "fair", label: "Fair Hiring", icon: Scale },
 ];
@@ -109,7 +110,7 @@ function DemoApp() {
       <div className="pointer-events-none fixed -top-40 left-1/3 h-96 w-96 rounded-full bg-violet-600/20 blur-[120px]" />
       <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-ink/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3">
-          <button onClick={() => go("home")} className="flex items-center gap-2"><Mark /><span className="font-display text-lg font-semibold">EqualPath <span className="gradient-text">AI</span></span></button>
+          <button onClick={() => go("home")} className="flex shrink-0 items-center gap-2" aria-label="EqualPath AI home"><Mark /><span className="hidden whitespace-nowrap font-display text-lg font-semibold sm:inline">EqualPath <span className="gradient-text">AI</span></span></button>
           <span className="chip-amber hidden sm:inline-flex">Interactive demo · sample data</span>
           <nav aria-label="Main" className="ml-auto flex gap-1 overflow-x-auto">
             {NAV.slice(1).map(({ id, label, icon: Icon }) => (
@@ -120,15 +121,15 @@ function DemoApp() {
           </nav>
         </div>
       </header>
-      <main id="main" className="relative mx-auto max-w-7xl px-4 py-8">
-        {view === "home" && <Overview go={go} />}
+      {view === "home" && <main id="main" className="relative"><Landing onEnter={(to) => go(to ?? "studio")} /></main>}
+      {view !== "home" && <main id="main" className="relative mx-auto max-w-7xl px-4 py-8">
         {view === "studio" && <Studio resume={resume} setResume={setResume} />}
         {view === "jobs" && <Jobs jobs={jobs} resume={resume} saved={saved} setSaved={setSaved} track={track} />}
         {view === "tracker" && <Tracker apps={apps} setApps={setApps} />}
         {view === "practice" && <Practice />}
         {view === "learn" && <Learn />}
         {view === "fair" && <Fair />}
-      </main>
+      </main>}
       <footer className="relative border-t border-white/[0.06] py-6 text-center text-xs text-slate-500">
         Demo of the EqualPath AI codebase. Everything you enter stays in this browser tab, and nothing is sent anywhere.
       </footer>
@@ -138,36 +139,6 @@ function DemoApp() {
 
 function Head({ kicker, title, sub }: { kicker: string; title: string; sub?: string }) {
   return <div className="mb-6 animate-fadeup"><p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">{kicker}</p><h1 className="text-3xl font-semibold md:text-4xl">{title}</h1>{sub && <p className="mt-2 max-w-3xl text-slate-400">{sub}</p>}</div>;
-}
-
-/* ---------------- overview ---------------- */
-function Overview({ go }: { go: (v: View) => void }) {
-  return (
-    <>
-      <section className="grid items-center gap-10 pb-10 lg:grid-cols-[1.1fr_1fr]">
-        <div className="animate-fadeup">
-          <span className="chip-violet mb-5"><ShieldCheck size={13} />Truthful by design · No fabricated credentials</span>
-          <h1 className="text-5xl font-semibold leading-[1.04] md:text-6xl">Your Skills.<br /><span className="gradient-text">Your Potential.</span><br />Your Opportunity.</h1>
-          <p className="mt-5 max-w-xl text-lg text-slate-400">Try the real resume parser, job-description comparison and suggestion engine below, then browse jobs, track applications and practice assessments.</p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            <button className="btn-primary px-6 py-3 text-base" onClick={() => go("studio")}>Try Resume Studio <ArrowRight size={18} /></button>
-            <button className="btn-ghost px-6 py-3 text-base" onClick={() => go("jobs")}>Browse demo jobs</button>
-          </div>
-        </div>
-        <HeroVisual />
-      </section>
-      <Notice tone="cyan"><Info size={14} className="mr-1 inline" /><b>What's live in this demo:</b> resume parsing, keyword comparison, rule-based suggestions, the anti-fabrication guard, the 12 ATS templates, job filtering and match explanations, follow-up suggestions, graded practice tests, STAR feedback and lesson quizzes. All of it runs the app's real code. <b>What needs the full deployment:</b> accounts, encrypted database storage, PDF/DOCX upload and export, live job feeds and AI (LLM) suggestions.</Notice>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {NAV.slice(1).map(({ id, label, icon: Icon }) => (
-          <button key={id} onClick={() => go(id)} className="glass glass-hover group p-6 text-left">
-            <div className="mb-3 grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-violet-500/25 to-cyan-500/10 text-cyan-200 ring-1 ring-white/10"><Icon size={20} /></div>
-            <h2 className="font-semibold">{label}</h2>
-            <p className="mt-1 text-sm text-slate-400">{({ studio: "Upload, review, compare to a job, approve each change, preview templates.", jobs: "Filter labeled DEMO listings and see skill-based match explanations.", tracker: "Kanban stages with follow-up tips and email drafts.", practice: "Numerical, verbal, situational, technical, and STAR mock interview.", learn: "AI literacy, ATS myths, algorithmic bias, and job-search safety.", fair: "Know your rights and the official channels for help." } as Record<string, string>)[id]}</p>
-            <span className="mt-3 inline-flex items-center gap-1 text-sm text-cyan-300">Open <ArrowRight size={14} className="transition group-hover:translate-x-1" /></span>
-          </button>))}
-      </div>
-    </>
-  );
 }
 
 /* ---------------- resume studio ---------------- */
