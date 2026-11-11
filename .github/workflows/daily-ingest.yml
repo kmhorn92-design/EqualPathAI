@@ -1,0 +1,11 @@
+# Alternative to Vercel Cron: call the protected endpoint daily.
+name: Daily job ingestion
+on:
+  schedule: [{ cron: "0 10 * * *" }]
+  workflow_dispatch: {}
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -fsS --retry 3 --retry-delay 30 -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ secrets.APP_URL }}/api/cron/ingest"

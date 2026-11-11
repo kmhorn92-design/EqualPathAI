@@ -1,0 +1,16 @@
+# dependencies & build
+node_modules
+.next
+*.tsbuildinfo
+coverage
+
+# secrets — NEVER commit (only .env.example, with empty values, is tracked)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# local encrypted uploads
+storage/*
+!storage/.gitkeep

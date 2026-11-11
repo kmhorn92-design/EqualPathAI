@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk Variable", var(--font-sans);
+  color-scheme: dark;
+}
+
+@layer base {
+  html { @apply bg-ink text-slate-100 antialiased; }
+  body { @apply min-h-screen font-sans; }
+  ::selection { background: rgba(139, 92, 246, .45); color: #fff; }
+  :focus-visible { @apply outline-none ring-2 ring-cyan-400 ring-offset-2 ring-offset-ink; }
+  h1, h2, h3, h4 { @apply font-display tracking-tight; }
+  input, textarea, select { @apply text-slate-100; }
+}
+
+@layer components {
+  .glass { @apply rounded-2xl border border-white/[0.08] bg-ink-700/60 backdrop-blur-xl shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_20px_60px_-20px_rgba(0,0,0,0.6)]; }
+  .glass-hover { @apply transition duration-300 hover:border-violet/40 hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.45)]; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition duration-200 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[.98]; }
+  .btn-primary { @apply btn bg-gradient-to-r from-violet-500 to-cyan-500 text-white shadow-[0_8px_30px_-8px_rgba(139,92,246,0.7)] hover:shadow-[0_8px_40px_-6px_rgba(34,211,238,0.6)] hover:brightness-110; }
+  .btn-ghost { @apply btn border border-white/10 bg-white/[0.03] text-slate-200 hover:border-white/25 hover:bg-white/[0.07]; }
+  .btn-danger { @apply btn border border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20; }
+  .input { @apply w-full rounded-xl border border-white/10 bg-ink-900/70 px-3.5 py-2.5 text-sm placeholder:text-slate-500 transition focus:border-violet-400/70 focus:outline-none focus:ring-2 focus:ring-violet-500/30; }
+  .label { @apply mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-400; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-xs text-slate-300; }
+  .chip-violet { @apply chip border-violet-400/30 bg-violet-500/10 text-violet-200; }
+  .chip-cyan { @apply chip border-cyan-400/30 bg-cyan-500/10 text-cyan-200; }
+  .chip-amber { @apply chip border-amber-400/30 bg-amber-500/10 text-amber-200; }
+  .chip-rose { @apply chip border-rose-400/30 bg-rose-500/10 text-rose-200; }
+  .chip-green { @apply chip border-emerald-400/30 bg-emerald-500/10 text-emerald-200; }
+  .gradient-text { @apply bg-gradient-to-r from-violet-300 via-fuchsia-200 to-cyan-300 bg-clip-text text-transparent; }
+  .grid-bg { background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size: 48px 48px; }
+  .skeleton { @apply rounded-lg bg-gradient-to-r from-white/[0.04] via-white/[0.09] to-white/[0.04] bg-[length:200%_100%] animate-shimmer; }
+  .mark-hit { @apply rounded bg-emerald-400/20 px-0.5 text-emerald-100; }
+  .mark-miss { @apply rounded bg-amber-400/20 px-0.5 text-amber-100; }
+  .prose-ep p { @apply mb-3 leading-relaxed text-slate-300; }
+  .prose-ep h3 { @apply mb-2 mt-5 text-lg font-semibold text-white; }
+  .prose-ep ul { @apply mb-3 list-disc space-y-1 pl-5 text-slate-300; }
+  .prose-ep a { @apply text-cyan-300 underline decoration-cyan-300/40 underline-offset-2 hover:decoration-cyan-300; }
+}
+
+/* Accessibility preferences (set from profile → <html data-*>) */
+html[data-reduced-motion="true"] *, html[data-reduced-motion="true"] *::before, html[data-reduced-motion="true"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+html[data-high-contrast="true"] .glass { @apply border-white/40 bg-ink-800; }
+html[data-high-contrast="true"] .text-slate-400, html[data-high-contrast="true"] .text-slate-500 { @apply text-slate-200; }
+html[data-large-text="true"] { font-size: 18px; }
