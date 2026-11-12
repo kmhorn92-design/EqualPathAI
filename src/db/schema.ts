@@ -30,6 +30,8 @@ export const users = pgTable("users", {
   role: roleEnum("role").notNull().default("USER"),
   onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
   lastActiveAt: timestamp("last_active_at", { withTimezone: true }).defaultNow(),
+  suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+  suspendedReason: text("suspended_reason"),
   createdAt: created(),
   updatedAt: updated(),
 });
@@ -103,6 +105,8 @@ export const jobSources = pgTable("job_sources", {
   configJson: jsonb("config_json").$type<Record<string, unknown>>().notNull().default({}),
   lastRunAt: timestamp("last_run_at", { withTimezone: true }),
   lastSuccessAt: timestamp("last_success_at", { withTimezone: true }),
+  /** Admin pause: source stays configured but ingestion skips it. */
+  pausedAt: timestamp("paused_at", { withTimezone: true }),
   createdAt: created(),
   updatedAt: updated(),
 });
@@ -132,6 +136,10 @@ export const jobs = pgTable("jobs", {
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   status: jobStatusEnum("status").notNull().default("ACTIVE"),
   isDemo: boolean("is_demo").notNull().default(false),
+  /** Admin moderation: hidden listings never show on the board, even if the source re-sends them. */
+  hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+  hiddenReason: text("hidden_reason"),
+  hiddenBy: text("hidden_by"),
   searchVector: tsvector("search_vector").generatedAlwaysAs(
     sql`setweight(to_tsvector('english', coalesce(title,'')), 'A') || setweight(to_tsvector('english', coalesce(company,'')), 'B') || setweight(to_tsvector('english', coalesce(location,'') || ' ' || coalesce(industry,'')), 'C') || setweight(to_tsvector('english', coalesce(description,'')), 'D')`,
   ),
@@ -374,3 +382,4 @@ export const recruiters = pgTable("recruiters", {
   isDemo: boolean("is_demo").notNull().default(false),
   createdAt: created(),
 }, (t) => [index("recruiters_partner_idx").on(t.partnerId)]);
+

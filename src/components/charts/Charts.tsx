@@ -35,3 +35,37 @@ export function ScoreChart({ data }: { data: { label: string; pct: number }[] })
     </div>
   );
 }
+
+/** One series per chart (single hue, no legend needed — the card title names it). */
+export function DailyBars({ data, label }: { data: { day: string; n: number }[]; label: string }) {
+  const total = data.reduce((s, d) => s + d.n, 0);
+  return (
+    <div className="h-48" role="img" aria-label={`${label}: ${total} total over ${data.length} days`}>
+      <ResponsiveContainer>
+        <BarChart data={data} margin={{ left: -24, right: 4, top: 8 }} barCategoryGap={2}>
+          <CartesianGrid vertical={false} stroke="rgba(255,255,255,.05)" />
+          <XAxis dataKey="day" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={24}
+            tickFormatter={(d: string) => new Date(d + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })} />
+          <YAxis allowDecimals={false} tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
+          <Tooltip {...tip} labelFormatter={(d) => new Date(String(d) + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} formatter={(v) => [v as number, label]} />
+          <Bar dataKey="n" fill="#8B5CF6" radius={[4, 4, 0, 0]} maxBarSize={22} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function HBars({ data, label }: { data: { name: string; n: number }[]; label: string }) {
+  return (
+    <div style={{ height: Math.max(120, data.length * 34 + 20) }} role="img" aria-label={`${label}: ${data.map((d) => `${d.name} ${d.n}`).join(", ")}`}>
+      <ResponsiveContainer>
+        <BarChart data={data} layout="vertical" margin={{ left: 8, right: 24, top: 4 }} barCategoryGap={6}>
+          <XAxis type="number" allowDecimals={false} hide />
+          <YAxis type="category" dataKey="name" width={130} tick={{ fill: "#cbd5e1", fontSize: 11 }} axisLine={false} tickLine={false} />
+          <Tooltip {...tip} formatter={(v) => [v as number, label]} />
+          <Bar dataKey="n" fill="#22D3EE" radius={[0, 4, 4, 0]} maxBarSize={18} label={{ position: "right", fill: "#94a3b8", fontSize: 11 }} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}

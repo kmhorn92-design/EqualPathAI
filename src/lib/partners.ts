@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 const demoFilter = () => (process.env.NODE_ENV === "production" ? [eq(schema.partners.isDemo, false)] : []);
@@ -19,13 +19,13 @@ export async function listPartners() {
 
 export async function openJobCount(names: string[], demo: boolean) {
   const [{ n }] = await db.select({ n: count() }).from(schema.jobs)
-    .where(and(eq(schema.jobs.status, "ACTIVE"), eq(schema.jobs.isDemo, demo && process.env.NODE_ENV !== "production"), inArray(sql`lower(${schema.jobs.company})`, names.map((x) => x.toLowerCase()))));
+    .where(and(eq(schema.jobs.status, "ACTIVE"), isNull(schema.jobs.hiddenAt), eq(schema.jobs.isDemo, demo && process.env.NODE_ENV !== "production"), inArray(sql`lower(${schema.jobs.company})`, names.map((x) => x.toLowerCase()))));
   return n;
 }
 
 export async function partnerJobs(names: string[], demo: boolean, limit = 8) {
   return db.select({ id: schema.jobs.id, title: schema.jobs.title, location: schema.jobs.location, workMode: schema.jobs.workMode, applyUrl: schema.jobs.applyUrl, postedAt: schema.jobs.postedAt })
-    .from(schema.jobs).where(and(eq(schema.jobs.status, "ACTIVE"), eq(schema.jobs.isDemo, demo && process.env.NODE_ENV !== "production"), inArray(sql`lower(${schema.jobs.company})`, names.map((x) => x.toLowerCase()))))
+    .from(schema.jobs).where(and(eq(schema.jobs.status, "ACTIVE"), isNull(schema.jobs.hiddenAt), eq(schema.jobs.isDemo, demo && process.env.NODE_ENV !== "production"), inArray(sql`lower(${schema.jobs.company})`, names.map((x) => x.toLowerCase()))))
     .orderBy(desc(schema.jobs.postedAt)).limit(limit);
 }
 

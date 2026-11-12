@@ -11,6 +11,7 @@ export const POST = handler(async ({ req }) => {
   const u = await db.query.users.findFirst({ where: eq(schema.users.email, email) });
   const ok = await verifyPassword(password, u?.passwordHash ?? DUMMY); // constant-ish time regardless of existence
   if (!u || !ok) throw new HttpError(401, "Email or password is incorrect.");
+  if (u.suspendedAt) throw new HttpError(403, "This account is suspended. Contact the EqualPath team if you think this is a mistake.");
   await createSession(u.id);
   await db.update(schema.users).set({ lastActiveAt: new Date() }).where(eq(schema.users.id, u.id));
   return { ok: true, next: u.onboardedAt ? "/dashboard" : "/onboarding" };

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 import { db, schema } from "@/db";
@@ -21,7 +21,7 @@ export default async function ResumeEditor({ params, searchParams }: { params: P
   const savedIds = (await db.select({ id: schema.savedJobs.jobId }).from(schema.savedJobs).where(eq(schema.savedJobs.userId, u.id))).map((x) => x.id);
   const jobCols = { id: schema.jobs.id, title: schema.jobs.title, company: schema.jobs.company, description: schema.jobs.description, isDemo: schema.jobs.isDemo };
   const savedJobs = savedIds.length ? await db.select(jobCols).from(schema.jobs).where(inArray(schema.jobs.id, savedIds)) : [];
-  const recent = await db.select(jobCols).from(schema.jobs).where(and(eq(schema.jobs.status, "ACTIVE"), ...(demoOk ? [] : [eq(schema.jobs.isDemo, false)]))).orderBy(asc(schema.jobs.isDemo), desc(schema.jobs.postedAt)).limit(25);
+  const recent = await db.select(jobCols).from(schema.jobs).where(and(eq(schema.jobs.status, "ACTIVE"), isNull(schema.jobs.hiddenAt), ...(demoOk ? [] : [eq(schema.jobs.isDemo, false)]))).orderBy(asc(schema.jobs.isDemo), desc(schema.jobs.postedAt)).limit(25);
   const jobOptions: JobOption[] = [...savedJobs.map((j) => ({ ...j, saved: true })), ...recent.filter((j) => !savedIds.includes(j.id))].map((j) => ({ ...j, description: j.description.slice(0, 8000) }));
   const picked = job ? (jobOptions.find((j) => j.id === job) ?? (await db.select(jobCols).from(schema.jobs).where(eq(schema.jobs.id, job)).limit(1))[0]) : undefined;
 

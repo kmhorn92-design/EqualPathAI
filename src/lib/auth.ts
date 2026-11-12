@@ -2,7 +2,7 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { randomToken, sha256 } from "./crypto";
 
@@ -35,12 +35,18 @@ export async function getUser(): Promise<SessionUser | null> {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
   const rows = await db
-    .select({ id: schema.users.id, email: schema.users.email, name: schema.users.name, role: schema.users.role, onboardedAt: schema.users.onboardedAt })
+    .select({ id: schema.users.id, email: schema.users.email, name: schema.users.name, role: schema.users.role, onboardedAt: schema.users.onboardedAt, lastActiveAt: schema.users.lastActiveAt })
     .from(schema.sessions)
     .innerJoin(schema.users, eq(schema.users.id, schema.sessions.userId))
-    .where(and(eq(schema.sessions.tokenHash, sha256(token)), gt(schema.sessions.expiresAt, new Date())))
+    .where(and(eq(schema.sessions.tokenHash, sha256(token)), gt(schema.sessions.expiresAt, new Date()), isNull(schema.users.suspendedAt)))
     .limit(1);
-  return rows[0] ?? null;
+  const r = rows[0];
+  if (!r) return null;
+  // "Last active" for admin analytics, updated at most hourly.
+  if (!r.lastActiveAt || Date.now() - r.lastActiveAt.getTime() > 36e5)
+    db.update(schema.users).set({ lastActiveAt: new Date() }).where(eq(schema.users.id, r.id)).catch(() => {});
+  const { lastActiveAt: _ignored, ...user } = r;
+  return user;
 }
 
 /** For pages: redirects unauthenticated users to login, un-onboarded users to onboarding. */

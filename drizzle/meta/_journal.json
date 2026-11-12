@@ -22,6 +22,13 @@
       "when": 1794442057111,
       "tag": "0002_hiring_partners",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794447892920,
+      "tag": "0003_admin_tools",
+      "breakpoints": true
     }
   ]
 }

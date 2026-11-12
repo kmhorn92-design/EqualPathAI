@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, gte, ilike, or, sql, type SQL, inArray, count } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, or, sql, type SQL, inArray, count, isNull } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { z } from "zod";
 import type { jobQuerySchema } from "../validation";
@@ -9,7 +9,7 @@ export const demoAllowed = () => process.env.NODE_ENV !== "production";
 
 export async function searchJobs(q: z.infer<typeof jobQuerySchema>, userId?: string) {
   const j = schema.jobs;
-  const where: SQL[] = [inArray(j.status, ["ACTIVE", "STALE"])];
+  const where: SQL[] = [inArray(j.status, ["ACTIVE", "STALE"]), isNull(j.hiddenAt)];
   where.push(eq(j.isDemo, q.demo === "1" && demoAllowed()));
   let rank: SQL | undefined;
   if (q.q?.trim()) {
@@ -40,7 +40,7 @@ export async function searchJobs(q: z.infer<typeof jobQuerySchema>, userId?: str
 
 export async function facets() {
   const j = schema.jobs;
-  const live = and(eq(j.status, "ACTIVE"), eq(j.isDemo, false));
+  const live = and(eq(j.status, "ACTIVE"), eq(j.isDemo, false), isNull(j.hiddenAt));
   const [ind, lvl, last, [{ active }]] = await Promise.all([
     db.selectDistinct({ v: j.industry }).from(j).where(live),
     db.selectDistinct({ v: j.experienceLevel }).from(j).where(live),

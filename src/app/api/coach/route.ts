@@ -37,7 +37,7 @@ export const POST = handler(async ({ req, user }) => {
   } else reply = fallbackReply(i.topic, profile?.targetRoles[0] ?? "");
   await db.insert(schema.chatMessages).values({ threadId: thread.id, role: "assistant", contentEnc: encrypt(reply) });
   await db.update(schema.chatThreads).set({ updatedAt: new Date() }).where(eq(schema.chatThreads.id, thread.id));
-  await track(`coach_${i.topic}`);
+  await track(`coach_${i.topic}`); await track("coach_message");
   return { threadId: thread.id, reply, ai: llmEnabled() && !!consent?.aiProcessing };
 }, { auth: "user", limit: { key: "coach", max: 80, windowMs: 60 * 60_000 } });
 

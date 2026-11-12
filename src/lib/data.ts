@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { decryptJson } from "./crypto";
 import type { KeywordAnalysis } from "./resume/types";
@@ -24,12 +24,12 @@ export async function skillGaps(userId: string) {
 
 export async function recommendedJobs(userId: string, limit = 4) {
   const p = await db.query.profiles.findFirst({ where: eq(schema.profiles.userId, userId) });
-  const conds = [eq(schema.jobs.status, "ACTIVE")];
+  const conds = [eq(schema.jobs.status, "ACTIVE"), isNull(schema.jobs.hiddenAt)];
   if (p?.industries.length) conds.push(inArray(schema.jobs.industry, p.industries));
   if (p?.workPreference && p.workPreference !== "UNKNOWN") conds.push(eq(schema.jobs.workMode, p.workPreference));
   const live = process.env.NODE_ENV === "production" ? [eq(schema.jobs.isDemo, false)] : [];
   let rows = await db.select().from(schema.jobs).where(and(...conds, ...live)).orderBy(desc(schema.jobs.isDemo), desc(schema.jobs.postedAt)).limit(limit);
-  if (!rows.length) rows = await db.select().from(schema.jobs).where(and(eq(schema.jobs.status, "ACTIVE"), ...live)).orderBy(desc(schema.jobs.postedAt)).limit(limit);
+  if (!rows.length) rows = await db.select().from(schema.jobs).where(and(eq(schema.jobs.status, "ACTIVE"), isNull(schema.jobs.hiddenAt), ...live)).orderBy(desc(schema.jobs.postedAt)).limit(limit);
   return rows.sort((a, b) => Number(a.isDemo) - Number(b.isDemo));
 }
 

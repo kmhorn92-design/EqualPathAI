@@ -48,7 +48,10 @@ export async function runSource(a: JobAdapter, actor = "scheduler"): Promise<Sou
   const res: SourceResult = { sourceId: a.id, status: "SUCCESS", fetched: 0, inserted: 0, updated: 0, duplicates: 0, rejected: 0, markedStale: 0 };
   const logs: string[] = [];
   try {
-    if (!a.configured()) {
+    const src = await db.query.jobSources.findFirst({ where: eq(schema.jobSources.id, a.id) });
+    if (src?.pausedAt) {
+      res.status = "SKIPPED"; res.error = "Paused by an admin";
+    } else if (!a.configured()) {
       res.status = "SKIPPED";
       res.error = a.requiresPartnerApproval ? "Partner approval/credentials not present" : `Not configured (set ${a.authorization.envVars.join(", ")})`;
     } else {
