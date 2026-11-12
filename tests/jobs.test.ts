@@ -154,3 +154,11 @@ describe("feed completeness", async () => {
     expect(ADAPTERS.find((a) => a.id === "greenhouse")?.completeFeed).toBe(true);
   });
 });
+
+describe("settings copied with quotes", async () => {
+  const { envVal } = await import("@/lib/jobs/http");
+  it("strips accidental quotes and spaces", () => {
+    vi.stubEnv("X_TEST", ' "abc123" '); expect(envVal("X_TEST")).toBe("abc123");
+    vi.stubEnv("X_TEST", "'k'"); expect(envVal("X_TEST")).toBe("k"); vi.unstubAllEnvs();
+  });
+});

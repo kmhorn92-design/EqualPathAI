@@ -1,5 +1,5 @@
 import type { JobAdapter, NormalizedJob } from "../types";
-import { getJson } from "../http";
+import { envVal, getJson } from "../http";
 import { inferWorkMode, inferIndustry } from "../normalize";
 
 type AZ = { results: { id: string; title: string; company: { display_name: string }; location: { display_name: string }; description: string; redirect_url: string;
@@ -22,14 +22,14 @@ export const adzuna: JobAdapter = {
   attribution: "Jobs by Adzuna",
   permittedFields: ["title", "company", "location", "description", "applyUrl", "postedAt", "workMode", "employmentType", "salaryMin", "salaryMax", "industry"],
   requiresPartnerApproval: false,
-  configured: () => Boolean(process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY),
+  configured: () => Boolean(envVal("ADZUNA_APP_ID") && envVal("ADZUNA_APP_KEY")),
   async fetchJobs({ signal, log }) {
     const out: NormalizedJob[] = [];
     const country = process.env.ADZUNA_COUNTRY ?? "us";
     const pages = Math.min(Number(process.env.ADZUNA_PAGES ?? 1), 5); // per category; free tier allows ~250 calls/day
     const cats = adzunaCategories();
     for (const category of cats) for (let page = 1; page <= pages; page++) {
-      const q = new URLSearchParams({ app_id: process.env.ADZUNA_APP_ID!, app_key: process.env.ADZUNA_APP_KEY!, results_per_page: "50", max_days_old: process.env.ADZUNA_MAX_DAYS ?? "3", sort_by: "date" });
+      const q = new URLSearchParams({ app_id: envVal("ADZUNA_APP_ID"), app_key: envVal("ADZUNA_APP_KEY"), results_per_page: "50", max_days_old: process.env.ADZUNA_MAX_DAYS ?? "3", sort_by: "date" });
       if (process.env.ADZUNA_WHAT) q.set("what", process.env.ADZUNA_WHAT);
       if (process.env.ADZUNA_WHERE) q.set("where", process.env.ADZUNA_WHERE);
       if (category) q.set("category", category);
