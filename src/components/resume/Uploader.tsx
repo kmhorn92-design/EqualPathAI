@@ -6,7 +6,7 @@ import { ErrorBox, Progress, cx } from "../ui";
 
 const ACCEPT = ".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
 
-export function Uploader() {
+export function Uploader({ jobId }: { jobId?: string } = {}) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
@@ -28,7 +28,7 @@ export function Uploader() {
     xhr.onload = () => {
       let d: { id?: string; error?: string } = {};
       try { d = JSON.parse(xhr.responseText); } catch {}
-      if (xhr.status >= 200 && xhr.status < 300 && d.id) { setPct(100); setStage("Done. Opening Studio…"); router.push(`/resume/${d.id}`); }
+      if (xhr.status >= 200 && xhr.status < 300 && d.id) { setPct(100); setStage("Done. Opening Studio…"); router.push(`/resume/${d.id}${jobId ? `?job=${jobId}` : ""}`); }
       else { setPct(null); setErr(d.error ?? "Upload failed."); }
     };
     xhr.onerror = () => { setPct(null); setErr("Network error. Please try again."); };
@@ -41,7 +41,7 @@ export function Uploader() {
     setErr(null); setPct(40); setStage("Structuring your experience…");
     const r = await fetch("/api/resumes", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, title: "Pasted resume" }) });
     const d = await r.json().catch(() => ({}));
-    if (r.ok) router.push(`/resume/${d.id}`); else { setPct(null); setErr(d.error ?? "Could not process text."); }
+    if (r.ok) router.push(`/resume/${d.id}${jobId ? `?job=${jobId}` : ""}`); else { setPct(null); setErr(d.error ?? "Could not process text."); }
   }
 
   return (

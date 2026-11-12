@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, Save, Wand2, Check, X, Download, Loader2, ShieldCheck, AlertTriangle, Columns2, Eye, PencilLine, Info } from "lucide-react";
 import type { KeywordAnalysis, ResumeData, Suggestion } from "@/lib/resume/types";
@@ -11,7 +11,8 @@ import { TagInput } from "../ui/TagInput";
 import { Card, ErrorBox, Notice, cx } from "../ui";
 
 type Version = { id: string; label: string; templateId: string; jobTitle: string | null; createdAt: string; content: ResumeData; jobDescription: string | null; analysis: { analysis?: KeywordAnalysis; suggestions?: Suggestion[] } | null };
-type Props = { resumeId: string; title: string; initial: ResumeData; versions: Version[]; initialVersion?: string; aiAvailable: boolean };
+export type JobOption = { id: string; title: string; company: string; description: string; saved?: boolean; isDemo?: boolean };
+type Props = { resumeId: string; title: string; initial: ResumeData; versions: Version[]; initialVersion?: string; aiAvailable: boolean; initialJob?: JobOption; jobOptions?: JobOption[] };
 type Tab = "edit" | "tailor" | "preview";
 
 const newId = (p: string) => `${p}_${Math.random().toString(36).slice(2, 9)}`;
@@ -45,9 +46,9 @@ function changedKeys(a: ResumeData, b: ResumeData) {
   return s;
 }
 
-export function Studio({ resumeId, title, initial, versions: initVersions, initialVersion, aiAvailable }: Props) {
+export function Studio({ resumeId, title, initial, versions: initVersions, initialVersion, aiAvailable, initialJob, jobOptions = [] }: Props) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>(initialVersion ? "preview" : "edit");
+  const [tab, setTab] = useState<Tab>(initialJob ? "tailor" : initialVersion ? "preview" : "edit");
   const [data, setData] = useState<ResumeData>(initial);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -55,8 +56,9 @@ export function Studio({ resumeId, title, initial, versions: initVersions, initi
   const [msg, setMsg] = useState<string | null>(null);
   const [versions, setVersions] = useState(initVersions);
   // tailoring
-  const [jobTitle, setJobTitle] = useState("");
-  const [jd, setJd] = useState("");
+  const [jobTitle, setJobTitle] = useState(initialJob ? `${initialJob.title.replace("[DEMO] ", "")} at ${initialJob.company}` : "");
+  const [jd, setJd] = useState(initialJob ? `${initialJob.title}\n${initialJob.company}\n\n${initialJob.description}` : "");
+  const [pickedJob, setPickedJob] = useState(initialJob?.id ?? "");
   const [useAi, setUseAi] = useState(aiAvailable);
   const [analysis, setAnalysis] = useState<KeywordAnalysis | null>(null);
   const [sugs, setSugs] = useState<Suggestion[]>([]);
@@ -76,6 +78,17 @@ export function Studio({ resumeId, title, initial, versions: initVersions, initi
     if (!r.ok) return setErr((await r.json().catch(() => ({}))).error ?? "Save failed");
     setDirty(false); setMsg("Edits saved.");
   }
+
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (initialJob && !autoRan.current) { autoRan.current = true; analyze(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const pickJob = (id: string) => {
+    setPickedJob(id);
+    const j = jobOptions.find((x) => x.id === id);
+    if (j) { setJobTitle(`${j.title.replace("[DEMO] ", "")} at ${j.company}`); setJd(`${j.title}\n${j.company}\n\n${j.description}`); setAnalysis(null); setSugs([]); }
+  };
 
   async function analyze() {
     setBusy("analyze"); setErr(null); setAnalysis(null); setSugs([]); setBlocked([]);
@@ -189,6 +202,14 @@ export function Studio({ resumeId, title, initial, versions: initVersions, initi
       {tab === "tailor" && (
         <div className="space-y-5">
           <Card>
+            {jobOptions.length > 0 && <div className="mb-4">
+              <label htmlFor="pick" className="label">Pick a job from the board</label>
+              <select id="pick" className="input" value={pickedJob} onChange={(e) => pickJob(e.target.value)}>
+                <option value="">Choose a saved or recent job, or paste a description below</option>
+                {jobOptions.some((j) => j.saved) && <optgroup label="Saved jobs">{jobOptions.filter((j) => j.saved).map((j) => <option key={j.id} value={j.id}>{j.title} at {j.company}</option>)}</optgroup>}
+                <optgroup label="Recent listings">{jobOptions.filter((j) => !j.saved).map((j) => <option key={j.id} value={j.id}>{j.title} at {j.company}</option>)}</optgroup>
+              </select>
+            </div>}
             <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
               <div><label htmlFor="jt" className="label">Job title (for your records)</label><input id="jt" className="input" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="e.g. Patient Access Representative" /></div>
               <label className="flex items-end gap-2 pb-2.5 text-sm"><input type="checkbox" className="h-4 w-4 accent-violet-500" checked={useAi} disabled={!aiAvailable} onChange={(e) => setUseAi(e.target.checked)} />AI suggestions{!aiAvailable && <span className="text-xs text-slate-500">(not configured)</span>}</label>

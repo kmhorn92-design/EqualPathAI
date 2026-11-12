@@ -16,7 +16,11 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
   const parsed = jobQuerySchema.safeParse(Object.fromEntries(Object.entries(sp).filter(([, v]) => v !== "")));
   const q = parsed.success ? parsed.data : jobQuerySchema.parse({});
   const user = await getUser();
-  const [{ total, rows }, f] = await Promise.all([searchJobs(q, user?.id), facets()]);
+  const f = await facets();
+  // Development only: with no live sources connected, show labeled DEMO listings instead of an empty board.
+  const autoDemo = demoAllowed() && f.active === 0 && sp.demo === undefined;
+  if (autoDemo) q.demo = "1";
+  const { total, rows } = await searchJobs(q, user?.id);
   const pages = Math.ceil(total / PAGE_SIZE);
   const link = (patch: Record<string, string | undefined>) => `/jobs?${new URLSearchParams(Object.entries({ ...sp, ...patch }).filter(([, v]) => v) as [string, string][])}`;
   const showingDemo = q.demo === "1" && demoAllowed();
@@ -62,7 +66,10 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<Rec
         </details>
       </form>
 
-      {showingDemo && <div className="mb-4"><Notice tone="amber">You&apos;re viewing <b>DEMO</b> listings for development. These are not real jobs and are never mixed into live results or counts.</Notice></div>}
+      {showingDemo && <div className="mb-4"><Notice tone="amber">{autoDemo
+        ? <>No live job sources are connected yet, so you&apos;re seeing <b>DEMO</b> listings (development only). They aren&apos;t real jobs and are never counted as live. To see real jobs, add a free <b>USAJOBS</b> or <b>Adzuna</b> key to <code>.env</code> and run <code>npm run ingest</code>.</>
+        : <>You&apos;re viewing <b>DEMO</b> listings for development. These are not real jobs and are never mixed into live results or counts.</>}</Notice></div>}
+      {showingDemo && total === 0 && !q.q && <div className="mb-4"><Notice tone="cyan">There are no DEMO jobs in your database yet. In Terminal, stop the app (Control + C), run <code>ENABLE_DEMO_JOBS=true npm run db:seed</code>, then start it again.</Notice></div>}
 
       <p className="mb-3 text-sm text-slate-400" aria-live="polite">{total} {showingDemo ? "demo" : "verified"} result{total === 1 ? "" : "s"}{q.q ? ` for “${q.q}”` : ""}</p>
       {rows.length ? (

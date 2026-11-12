@@ -98,3 +98,29 @@ describe("match explanation", () => {
     expect(JSON.stringify(m)).not.toMatch(/probab|likel|%/i);
   });
 });
+
+describe("no-key adapters", async () => {
+  const { themuse } = await import("@/lib/jobs/adapters/themuse");
+  const { remotive } = await import("@/lib/jobs/adapters/remotive");
+  it("maps The Muse responses", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ page: 0, page_count: 1, results: [
+      { id: 101, name: "Medical Assistant", contents: "<p>Help patients</p>", publication_date: "2026-11-10T12:00:00Z", locations: [{ name: "Chicago, IL" }], levels: [{ name: "Entry Level" }], categories: [{ name: "Healthcare" }], company: { name: "Acme Health" }, refs: { landing_page: "https://www.themuse.com/jobs/acme/medical-assistant" } },
+      { id: 102, name: "Support Specialist", contents: "", publication_date: "2026-11-10T12:00:00Z", locations: [{ name: "Flexible / Remote" }], levels: [], categories: [], company: { name: "Beta" }, refs: { landing_page: "https://www.themuse.com/jobs/beta/support" } },
+    ] }))));
+    const jobs = await themuse.fetchJobs({ signal: new AbortController().signal, log: () => {} });
+    expect(jobs[0]).toMatchObject({ sourceJobId: "101", company: "Acme Health", experienceLevel: "Entry level", industry: "Healthcare", description: "Help patients", workMode: "UNKNOWN" });
+    expect(jobs[1]).toMatchObject({ workMode: "REMOTE", location: "Remote" });
+  });
+  it("maps Remotive responses and links back to Remotive", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ jobs: [
+      { id: 7, url: "https://remotive.com/remote-jobs/customer-support/agent-7", title: "Customer Support Agent", company_name: "Gamma", category: "Customer Service", job_type: "full_time", publication_date: "2026-11-09T10:00:00", candidate_required_location: "USA", description: "<b>Help</b> customers" },
+    ] }))));
+    const [j] = await remotive.fetchJobs({ signal: new AbortController().signal, log: () => {} });
+    expect(j).toMatchObject({ workMode: "REMOTE", location: "Remote (USA)", employmentType: "Full-time", applyUrl: "https://remotive.com/remote-jobs/customer-support/agent-7", description: "Help customers", industry: "Customer Service" });
+    expect(remotive.attribution).toMatch(/Remotive/);
+  });
+  it("both are on by default and can be turned off", () => {
+    expect(themuse.configured() && remotive.configured()).toBe(true);
+    vi.stubEnv("MUSE_ENABLED", "false"); expect(themuse.configured()).toBe(false); vi.unstubAllEnvs();
+  });
+});

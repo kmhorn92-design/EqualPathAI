@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Bookmark, BookmarkCheck, ExternalLink, MapPin, Clock, ShieldCheck, Sparkles, Loader2, Plus, AlertTriangle } from "lucide-react";
+import { Bookmark, BookmarkCheck, ExternalLink, MapPin, Clock, ShieldCheck, Sparkles, Loader2, Plus, AlertTriangle, Wand2 } from "lucide-react";
 import { cx, DemoBadge } from "../ui";
 
 export type JobRow = {
@@ -64,6 +64,7 @@ export function JobCard({ job, signedIn }: { job: JobRow; signedIn: boolean }) {
       )}
       <div className="mt-4 flex flex-wrap gap-2">
         <a href={job.applyUrl} target="_blank" rel="noopener noreferrer nofollow" className="btn-primary py-2">Apply on employer site<ExternalLink size={14} /></a>
+        <a href={signedIn ? `/resume/tailor?job=${job.id}` : "/login"} className="btn-ghost border-violet-400/40 py-2 text-violet-100"><Wand2 size={14} />Tailor my resume</a>
         {signedIn && <button onClick={why} className="btn-ghost py-2">{loading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}{match ? "Hide" : "Why this matches"}</button>}
         {signedIn && <button onClick={track} disabled={tracked} className="btn-ghost py-2"><Plus size={14} />{tracked ? "In tracker" : "Track"}</button>}
       </div>
