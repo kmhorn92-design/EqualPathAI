@@ -5,7 +5,7 @@ import { encryptBuffer, decryptBuffer, randomToken } from "./crypto";
 /**
  * Object storage. All blobs are encrypted client-side (AES-256-GCM) BEFORE upload,
  * so even the storage provider never sees plaintext resumes.
- * Drivers: "local" (dev) and "supabase" (Supabase Storage private bucket via REST).
+ * Drivers: "local" (dev), "db" (Postgres; use on Vercel) and "supabase" (Supabase Storage private bucket via REST).
  */
 interface Driver {
   put(key: string, data: Buffer): Promise<void>;
@@ -47,7 +47,25 @@ function supabase(): Driver {
   };
 }
 
-const driver = (): Driver => (process.env.STORAGE_DRIVER === "supabase" ? supabase() : local);
+/** Stores the (already encrypted) blob in Postgres. Good for Vercel, where the filesystem doesn't persist. */
+const database: Driver = {
+  async put(key, data) {
+    const { db, schema } = await import("@/db");
+    await db.insert(schema.storedBlobs).values({ key, data }).onConflictDoUpdate({ target: schema.storedBlobs.key, set: { data } });
+  },
+  async get(key) {
+    const { db, schema } = await import("@/db"); const { eq } = await import("drizzle-orm");
+    const row = await db.query.storedBlobs.findFirst({ where: eq(schema.storedBlobs.key, key) });
+    if (!row) throw new Error("stored file not found");
+    return Buffer.from(row.data);
+  },
+  async del(key) {
+    const { db, schema } = await import("@/db"); const { eq } = await import("drizzle-orm");
+    await db.delete(schema.storedBlobs).where(eq(schema.storedBlobs.key, key));
+  },
+};
+
+const driver = (): Driver => (process.env.STORAGE_DRIVER === "supabase" ? supabase() : process.env.STORAGE_DRIVER === "db" ? database : local);
 
 export async function putEncrypted(userId: string, data: Buffer): Promise<string> {
   const key = `${userId}/${randomToken(16)}.bin`;

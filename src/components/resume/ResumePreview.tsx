@@ -20,8 +20,7 @@ function Heading({ s, children }: { s: ResumeStyle; children: ReactNode }) {
 }
 
 function Bullet({ s, children, className }: { s: ResumeStyle; children: ReactNode; className?: string }) {
-  const dot: CSSProperties = s.id === "spotlight" ? { background: s.accent, width: 5, height: 5, borderRadius: 1, marginTop: 6 }
-    : s.id === "modern" ? { background: s.accent, width: 4, height: 4, borderRadius: 9, marginTop: 7 } : { background: s.ink, width: 4, height: 4, borderRadius: 9, marginTop: 7 };
+  const dot: CSSProperties = { background: s.id === "executive" ? s.ink : s.accent, width: 4.5, height: 4.5, borderRadius: 9, marginTop: 7 };
   return <li className={`flex gap-2.5 ${className ?? ""}`}><span aria-hidden className="shrink-0" style={dot} /><span>{children}</span></li>;
 }
 

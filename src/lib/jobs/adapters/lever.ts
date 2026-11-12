@@ -16,6 +16,7 @@ export const lever: JobAdapter = {
   attribution: "Listing from the employer's Lever career site",
   permittedFields: ["title", "company", "location", "description", "applyUrl", "postedAt", "workMode", "employmentType", "salaryMin", "salaryMax", "salaryCurrency", "salaryPeriod", "industry"],
   requiresPartnerApproval: false,
+  completeFeed: true, // each fetch is the full list of open jobs
   configured: () => list(process.env.LEVER_COMPANIES).length > 0,
   async fetchJobs({ signal, log }) {
     const out: NormalizedJob[] = [];

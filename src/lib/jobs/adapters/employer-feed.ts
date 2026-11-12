@@ -34,6 +34,7 @@ export const employerFeeds: JobAdapter = {
   attribution: "Posted via the employer's authorized feed",
   permittedFields: ["title", "company", "location", "description", "applyUrl", "postedAt", "expiresAt", "workMode", "employmentType", "salaryMin", "salaryMax", "salaryCurrency", "salaryPeriod"],
   requiresPartnerApproval: false,
+  completeFeed: true, // an employer feed lists all of its open jobs
   configured: () => list(process.env.EMPLOYER_FEEDS).length > 0,
   async fetchJobs({ signal, log }) {
     const out: NormalizedJob[] = [];

@@ -29,6 +29,13 @@
       "when": 1794447892920,
       "tag": "0003_admin_tools",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794450518877,
+      "tag": "0004_stored_blobs",
+      "breakpoints": true
     }
   ]
 }

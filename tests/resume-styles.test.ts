@@ -16,6 +16,17 @@ describe("resume styles stay ATS-readable", async () => {
       expect(txt.indexOf("SUMMARY")).toBeLessThan(txt.indexOf("EXPERIENCE"));
       expect(txt).toContain("Assisted customers with orders and questions in a fast-paced setting");
     });
+    it(`${s.name}: exported PDF and Word files parse back into the same resume`, async () => {
+      const { structureText } = await import("@/lib/resume/parse");
+      for (const [kind, buf] of [["pdf", await exportPdf(SAMPLE_RESUME, "classic", s.id)], ["docx", await exportDocx(SAMPLE_RESUME, "classic", s.id)]] as const) {
+        const back = structureText(await extractText(buf, kind));
+        const e0 = SAMPLE_RESUME.experience[0];
+        expect(back.experience[0]).toMatchObject({ title: e0.title, company: e0.company, start: e0.start });
+        expect(back.experience[0].bullets).toEqual(e0.bullets);
+        expect(back.skills).toEqual(expect.arrayContaining(SAMPLE_RESUME.skills));
+        expect(back.contact.email).toBe(SAMPLE_RESUME.contact.email);
+      }
+    });
     it(`${s.name}: Word export contains every bullet`, async () => {
       const txt = await extractText(await exportDocx(SAMPLE_RESUME, "classic", s.id), "docx");
       for (const e of SAMPLE_RESUME.experience) for (const b of e.bullets) expect(txt).toContain(b);

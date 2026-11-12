@@ -33,6 +33,13 @@ export interface JobAdapter {
   permittedFields: (keyof NormalizedJob)[];
   /** Partner programs (e.g. Indeed, LinkedIn) need written approval before enabling. */
   requiresPartnerApproval: boolean;
+  /**
+   * true when each fetch returns the source's COMPLETE list of open jobs (e.g. an employer's Greenhouse board),
+   * so a job missing from the fetch has closed. false for aggregators/APIs that only return the newest N jobs:
+   * those jobs age out via the freshness sweep instead (stale after JOB_STALE_AFTER_HOURS, removed after
+   * JOB_PARTIAL_MAX_AGE_DAYS without being seen again).
+   */
+  completeFeed?: boolean;
   /** Development-only data. Never mixed into live counts. */
   isDemo?: boolean;
   configured(): boolean;

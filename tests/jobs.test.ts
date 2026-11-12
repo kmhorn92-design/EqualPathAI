@@ -145,3 +145,12 @@ describe("no-key adapters", async () => {
     vi.unstubAllEnvs();
   });
 });
+
+describe("feed completeness", async () => {
+  const { ADAPTERS } = await import("@/lib/jobs/registry");
+  it("aggregators that return only the newest jobs are partial feeds", () => {
+    const partial = ADAPTERS.filter((a) => !a.completeFeed).map((a) => a.id);
+    expect(partial).toEqual(expect.arrayContaining(["adzuna", "jobicy", "remotive", "themuse", "usajobs"]));
+    expect(ADAPTERS.find((a) => a.id === "greenhouse")?.completeFeed).toBe(true);
+  });
+});

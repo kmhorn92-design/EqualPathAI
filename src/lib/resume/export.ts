@@ -104,6 +104,7 @@ export async function exportDocx(r: ResumeData, templateId: string, styleId?: st
 
 /* ─────────────────────────── PDF ─────────────────────────── */
 const safe = (s: string) => s.replace(/[–—]/g, "-").replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/[•·]/g, "-").replace(/[^\x20-\x7E\xA0-\xFF]/g, "");
+const DOT = "\u2022"; // "•" is in WinAnsi, so it is real text: parsers see bullets and skill separators
 function wrap(text: string, font: PDFFont, size: number, width: number): string[] {
   const words = safe(text).split(/\s+/).filter(Boolean);
   const lines: string[] = []; let cur = "";
@@ -190,20 +191,20 @@ export async function exportPdf(r: ResumeData, templateId: string, styleId?: str
       const lines = wrap(bl.text, reg, sz, CW - 14);
       lines.forEach((ln, k) => {
         ensure(sz * 1.4);
-        if (k === 0) {
-          if (s.id === "spotlight") page.drawRectangle({ x: M + 2, y: y - sz * 0.62, width: 3.6, height: 3.6, color: accent });
-          else page.drawCircle({ x: M + 4, y: y - sz * 0.45, size: 1.6, color: s.id === "modern" ? accent : ink });
-        }
+        if (k === 0) text(DOT, M + 2, sz, bold, s.id === "executive" ? ink : accent);
         text(ln, M + 14, sz, reg, ink); y -= sz * 1.38;
       });
       y -= 1;
     } else if (bl.kind === "skills") {
-      // Wrap items, drawing the separator dots in the accent colour.
-      const dot = "  -  "; const dotW = reg.widthOfTextAtSize(dot, sz);
+      // Wrap items; separators are real "•" characters (accent coloured) so parsers keep skills apart.
+      const dot = `  ${DOT}  `; const dotW = reg.widthOfTextAtSize(dot, sz);
       let x = M; ensure(sz * 1.4);
       bl.items.forEach((item, k) => {
         const it = safe(item); const w = reg.widthOfTextAtSize(it, sz);
-        if (k > 0) { if (x + dotW + w > W - M) { y -= sz * 1.38; ensure(sz * 1.4); x = M; } else { page.drawCircle({ x: x + dotW / 2, y: y - sz * 0.38, size: 1.3, color: s.id === "executive" ? muted : accent }); x += dotW; } }
+        if (k > 0) {
+          if (x + dotW + w > W - M) { text(",", x, sz, reg, ink); y -= sz * 1.38; ensure(sz * 1.4); x = M; }
+          else { text(dot, x, sz, reg, s.id === "executive" ? muted : accent); x += dotW; }
+        }
         text(it, x, sz, reg, ink); x += w;
       });
       y -= sz * 1.38;

@@ -17,7 +17,9 @@
     "db:generate": "drizzle-kit generate",
     "prepare": "git config core.hooksPath .githooks || true",
     "make-admin": "tsx scripts/make-admin.ts",
-    "test:e2e:admin": "tsx scripts/e2e-admin.mts"
+    "test:e2e:admin": "tsx scripts/e2e-admin.mts",
+    "vercel-build": "tsx scripts/migrate.ts && next build",
+    "jobs:refresh": "tsx scripts/restore-jobs.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -53,5 +55,8 @@
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=20.12"
   }
 }

@@ -18,6 +18,7 @@ export const greenhouse: JobAdapter = {
   attribution: "Listing from the employer's Greenhouse career site",
   permittedFields: ["title", "company", "location", "description", "applyUrl", "postedAt", "workMode", "industry"],
   requiresPartnerApproval: false,
+  completeFeed: true, // each fetch is the full list of open jobs
   configured: () => list(process.env.GREENHOUSE_BOARDS).length > 0,
   async fetchJobs({ signal, log }) {
     const out: NormalizedJob[] = [];

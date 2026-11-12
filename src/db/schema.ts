@@ -383,3 +383,12 @@ export const recruiters = pgTable("recruiters", {
   createdAt: created(),
 }, (t) => [index("recruiters_partner_idx").on(t.partnerId)]);
 
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
+
+/** Encrypted file blobs when STORAGE_DRIVER=db (for hosts without a persistent disk, like Vercel). Already AES-256-GCM encrypted. */
+export const storedBlobs = pgTable("stored_blobs", {
+  key: text("key").primaryKey(),
+  data: bytea("data").notNull(),
+  createdAt: created(),
+});

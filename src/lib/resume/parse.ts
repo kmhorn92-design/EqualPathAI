@@ -69,6 +69,11 @@ export function structureText(raw: string): ResumeData {
       job.bullets.push(line.replace(BULLET, "").trim());
     } else if (job && job.bullets.length && /^[a-z]/.test(line)) {
       job.bullets[job.bullets.length - 1] += " " + line; // wrapped bullet
+    } else if (job && !job.bullets.length && !job.company && !BULLET.test(line) && line.length < 90 && (/\s[|·•–—-]\s/.test(line) || !/^[A-Za-z .'-]+,\s*[A-Z]{2}$/.test(line))) {
+      // "Title    dates" followed by "Company · City, ST" (the layout our own exports use)
+      const parts = line.split(/\s+[|·•–—-]\s+/).map((x) => x.trim()).filter(Boolean);
+      job.company = parts[0] ?? "";
+      if (!job.location) job.location = parts.slice(1).join(", ");
     } else if (job && !job.bullets.length && !job.location && /^[A-Za-z .'-]+,\s*[A-Z]{2}$/.test(line)) {
       job.location = line;
     } else if (job && line.length > 45 && !/[|@]/.test(line)) {
@@ -85,15 +90,16 @@ export function structureText(raw: string): ResumeData {
 
   // education
   let ed: ResumeData["education"][number] | null = null;
+  const SCHOOL = /(university|college|institute|school|academy)/i;
+  const DEGREE = /(bachelor|master|associate|b\.?s\.?\b|b\.?a\.?\b|m\.?s\.?\b|ph\.?d|diploma|certificate|ged)/i;
   for (const line of buckets.education) {
     const year = line.match(/(19|20)\d{2}/)?.[0] ?? "";
-    if (/(university|college|institute|school|academy)/i.test(line) || !ed) {
-      ed = { id: uid("edu"), school: line.replace(/(19|20)\d{2}.*$/, "").replace(/[|,–-]\s*$/, "").trim(), degree: "", field: "", end: year, details: "" };
-      r.education.push(ed);
-    } else if (/(bachelor|master|associate|b\.?s\.?|b\.?a\.?|m\.?s\.?|ph\.?d|diploma|certificate|ged)/i.test(line) && !ed.degree) {
-      ed.degree = line.replace(/(19|20)\d{2}.*$/, "").trim();
-      if (!ed.end) ed.end = year;
-    } else ed.details = [ed.details, line.replace(BULLET, "")].filter(Boolean).join("; ");
+    const text = line.replace(BULLET, "").replace(/(19|20)\d{2}.*$/, "").replace(/[|,–-]\s*$/, "").trim();
+    if (SCHOOL.test(line) && ed && !ed.school) { ed.school = text; if (!ed.end) ed.end = year; }
+    else if (SCHOOL.test(line) || (!ed && !DEGREE.test(line))) { ed = { id: uid("edu"), school: text, degree: "", field: "", end: year, details: "" }; r.education.push(ed); }
+    else if (DEGREE.test(line) && (!ed || ed.degree)) { ed = { id: uid("edu"), school: "", degree: text, field: "", end: year, details: "" }; r.education.push(ed); }
+    else if (DEGREE.test(line) && ed && !ed.degree) { ed.degree = text; if (!ed.end) ed.end = year; }
+    else if (ed) ed.details = [ed.details, line.replace(BULLET, "")].filter(Boolean).join("; ");
   }
 
   r.skills = Array.from(new Set(buckets.skills.join(", ").replace(BULLET, "").split(/[,;•|·]|\s{2,}/).map((s) => s.replace(BULLET, "").replace(/^[A-Za-z ]+:\s*/, "").trim()).filter((s) => s && s.length <= 60)));

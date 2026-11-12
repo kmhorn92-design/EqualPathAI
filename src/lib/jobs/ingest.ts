@@ -1,4 +1,4 @@
-import { and, eq, gte, lt, notInArray, sql, isNotNull, isNull, count } from "drizzle-orm";
+import { and, eq, gte, lt, notInArray, inArray, sql, isNotNull, isNull, count } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { ADAPTERS, DAILY_TARGET } from "./registry";
 import { canonicalKey, dedupe, validateJob } from "./normalize";
@@ -89,8 +89,9 @@ export async function runSource(a: JobAdapter, actor = "scheduler"): Promise<Sou
         if (r.inserted) res.inserted++; else res.updated++;
         seen.push(j.sourceJobId);
       }
-      // Listings this source no longer returns are no longer open: mark unavailable.
-      if (seen.length || raw.length === 0) {
+      // Complete feeds only: a listing the source no longer returns has closed. (Partial feeds like Adzuna or
+      // Jobicy return just the newest jobs, so "missing" means nothing there; those age out in sweepFreshness.)
+      if (a.completeFeed && (seen.length || raw.length === 0)) {
         const gone = await db.update(schema.jobs).set({ status: "UNAVAILABLE" })
           .where(and(eq(schema.jobs.sourceId, a.id), eq(schema.jobs.status, "ACTIVE"), seen.length ? notInArray(schema.jobs.sourceJobId, seen) : sql`true`))
           .returning({ id: schema.jobs.id });
@@ -116,9 +117,20 @@ export async function sweepFreshness() {
   const now = new Date();
   const expired = await db.update(schema.jobs).set({ status: "EXPIRED" })
     .where(and(isNotNull(schema.jobs.expiresAt), lt(schema.jobs.expiresAt, now), notInArray(schema.jobs.status, ["EXPIRED"]))).returning({ id: schema.jobs.id });
+  // Repair: partial-feed jobs are never "missing" — un-hide any an older version wrongly marked unavailable.
+  const maxAgeDaysR = Number(process.env.JOB_PARTIAL_MAX_AGE_DAYS ?? 14);
+  const partialIds = ADAPTERS.filter((a) => !a.completeFeed).map((a) => a.id);
+  if (partialIds.length) await db.update(schema.jobs).set({ status: "ACTIVE" })
+    .where(and(inArray(schema.jobs.sourceId, partialIds), eq(schema.jobs.status, "UNAVAILABLE"), gte(schema.jobs.lastVerifiedAt, new Date(now.getTime() - maxAgeDaysR * 864e5))));
   const stale = await db.update(schema.jobs).set({ status: "STALE" })
     .where(and(eq(schema.jobs.status, "ACTIVE"), lt(schema.jobs.lastVerifiedAt, new Date(now.getTime() - STALE_AFTER_H * 36e5)))).returning({ id: schema.jobs.id });
-  return { expired: expired.length, stale: stale.length };
+  // Partial-feed jobs that haven't been seen again for a long time are treated as closed.
+  const maxAgeDays = Number(process.env.JOB_PARTIAL_MAX_AGE_DAYS ?? 14);
+  const partial = ADAPTERS.filter((a) => !a.completeFeed).map((a) => a.id);
+  const aged = partial.length ? await db.update(schema.jobs).set({ status: "UNAVAILABLE" })
+    .where(and(inArray(schema.jobs.sourceId, partial), inArray(schema.jobs.status, ["ACTIVE", "STALE"]), lt(schema.jobs.lastVerifiedAt, new Date(now.getTime() - maxAgeDays * 864e5))))
+    .returning({ id: schema.jobs.id }) : [];
+  return { expired: expired.length, stale: stale.length, aged: aged.length };
 }
 
 export async function liveCounts() {

@@ -11,6 +11,9 @@ const TTL_DAYS = 14;
 
 export type SessionUser = { id: string; email: string; name: string | null; role: "USER" | "ADMIN"; onboardedAt: Date | null };
 
+/** Emails in ADMIN_EMAILS (comma-separated) become admins when they sign up or sign in. Handy for a fresh deployment. */
+export const isListedAdmin = (email: string) => (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean).includes(email.trim().toLowerCase());
+
 export const hashPassword = (pw: string) => bcrypt.hash(pw, 12);
 export const verifyPassword = (pw: string, hash: string) => bcrypt.compare(pw, hash);
 

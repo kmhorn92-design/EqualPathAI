@@ -33,6 +33,7 @@ export const demo: JobAdapter = {
   authorization: { method: "none — synthetic", envVars: ["ENABLE_DEMO_JOBS"], termsUrl: "", notes: "Never enabled in production." },
   cadence: "on demand", attribution: "DEMO — synthetic listing", permittedFields: ["title", "company", "location", "description", "applyUrl", "postedAt", "workMode", "employmentType", "industry", "experienceLevel", "salaryMin", "salaryMax", "salaryCurrency", "salaryPeriod"],
   requiresPartnerApproval: false,
+  completeFeed: true, // each fetch is the full list of open jobs
   configured: () => process.env.ENABLE_DEMO_JOBS === "true" && process.env.NODE_ENV !== "production",
   async fetchJobs() { return demoJobs(); },
 };
