@@ -12,7 +12,8 @@ export const GET = handler<{ id: string }>(async ({ req, user, params }) => {
   const template = req.nextUrl.searchParams.get("template") ?? v.templateId;
   if (format !== "docx" && format !== "pdf") throw new HttpError(400, "format must be docx or pdf");
   const data = decryptJson<ResumeData>(v.contentEnc);
-  const buf = format === "docx" ? await exportDocx(data, template) : await exportPdf(data, template);
+  const style = req.nextUrl.searchParams.get("style") ?? undefined;
+  const buf = format === "docx" ? await exportDocx(data, template, style) : await exportPdf(data, template, style);
   const name = `${(data.contact.name || "resume").replace(/[^A-Za-z0-9]+/g, "_")}_${v.label.replace(/[^A-Za-z0-9]+/g, "_")}`.slice(0, 80);
   await track(`export_${format}`);
   return new Response(new Uint8Array(buf), { headers: {

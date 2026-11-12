@@ -6,6 +6,7 @@ import type { KeywordAnalysis, ResumeData, Suggestion } from "@/lib/resume/types
 import { applySuggestions } from "@/lib/resume/analyze";
 import { LEXICON } from "@/lib/resume/lexicon";
 import { TEMPLATES } from "@/lib/resume/templates";
+import { RESUME_STYLES, DEFAULT_STYLE, isStyleId, type StyleId } from "@/lib/resume/styles";
 import { ResumePreview } from "./ResumePreview";
 import { TagInput } from "../ui/TagInput";
 import { Card, ErrorBox, Notice, cx } from "../ui";
@@ -66,6 +67,9 @@ export function Studio({ resumeId, title, initial, versions: initVersions, initi
   const [aiStatus, setAiStatus] = useState<string>("");
   // preview
   const [selected, setSelected] = useState<string>(initialVersion ?? initVersions[initVersions.length - 1]?.id ?? "");
+  const [styleId, setStyleIdState] = useState<StyleId>(DEFAULT_STYLE);
+  useEffect(() => { try { const v = localStorage.getItem("ep_resume_style"); if (isStyleId(v)) setStyleIdState(v); } catch { /* storage unavailable */ } }, []);
+  const setStyleId = (v: StyleId) => { setStyleIdState(v); try { localStorage.setItem("ep_resume_style", v); } catch { /* ignore */ } };
   const [template, setTemplate] = useState(initVersions.find((v) => v.id === (initialVersion ?? ""))?.templateId ?? "classic");
   const [compare, setCompare] = useState(false);
 
@@ -286,12 +290,22 @@ export function Studio({ resumeId, title, initial, versions: initVersions, initi
                 </li>))}</ul>
             </Card>
             <Card>
-              <label htmlFor="tpl" className="label">ATS template</label>
+              <h2 className="mb-1 text-sm font-semibold">Style</h2>
+              <p className="mb-3 text-xs text-slate-500">All three are one column with real text, so applicant tracking systems can read them.</p>
+              <div role="radiogroup" aria-label="Resume style" className="grid gap-2">{RESUME_STYLES.map((st) => (
+                <button key={st.id} role="radio" aria-checked={styleId === st.id} onClick={() => setStyleId(st.id)}
+                  className={cx("flex items-center gap-3 rounded-xl border p-2.5 text-left transition", styleId === st.id ? "border-violet-400/60 bg-violet-500/10" : "border-white/10 hover:border-white/25")}>
+                  <StyleThumb id={st.id} />
+                  <span className="min-w-0"><span className="block text-sm font-medium text-white">{st.name}</span><span className="block text-[11px] leading-snug text-slate-400">{st.bestFor}</span></span>
+                </button>))}</div>
+            </Card>
+            <Card>
+              <label htmlFor="tpl" className="label">Industry layout</label>
               <select id="tpl" className="input" value={template} onChange={(e) => setTemplate(e.target.value)}>{TEMPLATES.map((t) => <option key={t.id} value={t.id}>{t.name} · {t.industry}</option>)}</select>
-              <p className="mt-2 text-xs text-slate-500">All templates use one column, standard headings, and no tables or graphics.</p>
+              <p className="mt-2 text-xs text-slate-500">Sets the section order for your field (for example, certifications first in healthcare).</p>
               {sel && <div className="mt-4 grid gap-2">
-                <a className="btn-primary" href={`/api/versions/${sel.id}/export?format=docx&template=${template}`}><Download size={16} />Download DOCX</a>
-                <a className="btn-ghost" href={`/api/versions/${sel.id}/export?format=pdf&template=${template}`}><Download size={16} />Download PDF</a>
+                <a className="btn-primary" href={`/api/versions/${sel.id}/export?format=pdf&template=${template}&style=${styleId}`}><Download size={16} />Download PDF</a>
+                <a className="btn-ghost" href={`/api/versions/${sel.id}/export?format=docx&template=${template}&style=${styleId}`}><Download size={16} />Download Word (DOCX)</a>
               </div>}
               <button className="btn-ghost mt-2 w-full" onClick={() => setCompare(!compare)} aria-pressed={compare} disabled={!sel || sel.id === original?.id}><Columns2 size={16} />{compare ? "Single view" : "Compare with original"}</button>
             </Card>
@@ -299,13 +313,30 @@ export function Studio({ resumeId, title, initial, versions: initVersions, initi
           <div>
             {!sel ? <p className="text-slate-400">Save a version to preview it.</p> : compare && original ? (
               <div className="grid gap-4 xl:grid-cols-2">
-                <div><p className="mb-2 text-xs uppercase tracking-wider text-slate-500">Original</p><div className="origin-top-left"><ResumePreview data={original.content} templateId={template} /></div></div>
-                <div><p className="mb-2 text-xs uppercase tracking-wider text-emerald-300">{sel.label} · changes highlighted</p><ResumePreview data={sel.content} templateId={template} changed={changedKeys(original.content, sel.content)} /></div>
+                <div><p className="mb-2 text-xs uppercase tracking-wider text-slate-500">Original</p><div className="origin-top-left"><ResumePreview data={original.content} templateId={template} styleId={styleId} /></div></div>
+                <div><p className="mb-2 text-xs uppercase tracking-wider text-emerald-300">{sel.label} · changes highlighted</p><ResumePreview data={sel.content} templateId={template} styleId={styleId} changed={changedKeys(original.content, sel.content)} /></div>
               </div>
-            ) : <ResumePreview data={sel.content} templateId={template} />}
+            ) : <ResumePreview data={sel.content} templateId={template} styleId={styleId} />}
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+/** Tiny wireframe of each style so the choice is visual. */
+function StyleThumb({ id }: { id: StyleId }) {
+  const line = (w: string, c = "#CBD5E1", h = 2) => <span className="block rounded-full" style={{ width: w, height: h, background: c }} />;
+  return (
+    <span aria-hidden className="flex h-[52px] w-10 shrink-0 flex-col gap-[3px] overflow-hidden rounded-[4px] bg-white p-[5px] shadow">
+      {id === "spotlight" ? <span className="-mx-[5px] -mt-[5px] mb-[2px] flex flex-col gap-[2px] bg-slate-900 px-[5px] pb-[4px] pt-[5px]">{line("70%", "#fff", 3)}{line("50%", "#64748B")}</span>
+        : id === "executive" ? <span className="mb-[2px] flex flex-col items-center gap-[2px] border-b-2 border-double border-slate-800 pb-[3px]">{line("70%", "#111827", 3)}{line("55%", "#9CA3AF")}</span>
+        : <span className="mb-[2px] flex flex-col gap-[2px]">{line("75%", "#0F172A", 3)}{line("50%", "#94A3B8")}{line("25%", "#4338CA")}</span>}
+      {[0, 1].map((k) => <span key={k} className="flex flex-col gap-[2px]">
+        {id === "spotlight" ? <span className="flex items-center gap-[2px]"><span className="h-[5px] w-[2px] bg-teal-600" />{line("40%", "#0F172A")}</span>
+          : id === "executive" ? <span className="border-b border-slate-800 pb-[1px]">{line("40%", "#111827")}</span>
+          : <span className="flex items-center gap-[2px]">{line("35%", "#4338CA")}{line("50%", "#E2E8F0", 1)}</span>}
+        {line("90%")}{line("80%")}</span>)}
+    </span>
   );
 }
