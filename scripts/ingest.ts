@@ -1,4 +1,5 @@
 /** Daily ingestion entrypoint. Schedule with cron / Vercel Cron (/api/cron/ingest) / GitHub Actions. */
+import "./env";
 import { runAll } from "../src/lib/jobs/ingest";
 import { pool } from "../src/db";
 

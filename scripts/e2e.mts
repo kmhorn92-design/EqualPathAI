@@ -1,4 +1,5 @@
 // End-to-end API walkthrough against a running server.
+import "./env";
 import { exportPdf, exportDocx } from "../src/lib/resume/export.ts";
 import { structureText } from "../src/lib/resume/parse.ts";
 const B = process.env.BASE ?? "http://localhost:3100";

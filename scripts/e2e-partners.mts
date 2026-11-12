@@ -1,4 +1,5 @@
 // E2E: hiring partners (consent & agreement gating, contact visibility) and the site assistant.
+import "./env";
 import { eq } from "drizzle-orm";
 import { db, schema, pool } from "../src/db";
 const B = process.env.BASE ?? "http://localhost:3100";

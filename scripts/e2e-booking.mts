@@ -1,4 +1,5 @@
 // End-to-end test of in-app coach booking against a running dev server (after `npm run db:seed`).
+import "./env";
 import { eq } from "drizzle-orm";
 import { db, schema, pool } from "../src/db";
 const B = process.env.BASE ?? "http://localhost:3100";

@@ -2,6 +2,7 @@
  * Development seed. Everything created here is clearly labeled DEMO and flagged isDemo.
  * Never run against production with ENABLE_DEMO_JOBS — demo jobs are refused when NODE_ENV=production.
  */
+import "./env";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";

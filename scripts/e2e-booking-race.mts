@@ -1,3 +1,4 @@
+import "./env";
 import { eq } from "drizzle-orm";
 import { db, schema, pool } from "../src/db";
 const B = "http://localhost:3100";
