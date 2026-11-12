@@ -31,7 +31,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       {err && <ErrorBox>{err}</ErrorBox>}
       {mode === "signup" && <div><label htmlFor="name" className="label">Name you go by</label><input id="name" name="name" className="input" autoComplete="name" required aria-describedby="name-err" />{fe("name")}</div>}
       <div><label htmlFor="email" className="label">Email</label><input id="email" name="email" type="email" className="input" autoComplete="email" required aria-describedby="email-err" />{fe("email")}</div>
-      <div><label htmlFor="password" className="label">Password</label><input id="password" name="password" type="password" className="input" autoComplete={mode === "signup" ? "new-password" : "current-password"} required minLength={mode === "signup" ? 10 : 1} aria-describedby="password-err" />{fe("password")}
+      <div><div className="flex items-baseline justify-between"><label htmlFor="password" className="label">Password</label>{mode === "login" && <Link href="/forgot-password" className="text-xs text-cyan-300 hover:underline">Forgot password?</Link>}</div><input id="password" name="password" type="password" className="input" autoComplete={mode === "signup" ? "new-password" : "current-password"} required minLength={mode === "signup" ? 10 : 1} aria-describedby="password-err" />{fe("password")}
         {mode === "signup" && <p className="mt-1 text-xs text-slate-500">At least 10 characters, with a letter and a number.</p>}</div>
       {mode === "signup" && (
         <label className="flex items-start gap-2 text-sm text-slate-300">

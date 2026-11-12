@@ -19,7 +19,8 @@
     "make-admin": "tsx scripts/make-admin.ts",
     "test:e2e:admin": "tsx scripts/e2e-admin.mts",
     "vercel-build": "tsx scripts/migrate.ts && next build",
-    "jobs:refresh": "tsx scripts/restore-jobs.ts"
+    "jobs:refresh": "tsx scripts/restore-jobs.ts",
+    "test:e2e:reset": "tsx scripts/e2e-reset.mts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -31,6 +32,7 @@
     "lucide-react": "^1.69.0",
     "mammoth": "^1.13.0",
     "next": "^15.5.29",
+    "nodemailer": "^7.0.13",
     "pdf-lib": "^1.17.1",
     "pg": "^8.23.1",
     "react": "^19.3.1",
@@ -43,6 +45,7 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^26.6.6",
+    "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

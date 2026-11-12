@@ -1,6 +1,9 @@
 import { z } from "zod";
 
 const tag = z.string().trim().min(1).max(80);
+export const passwordRule = z.string().min(10, "Use at least 10 characters").max(200).refine((p) => /[A-Za-z]/.test(p) && /\d/.test(p), "Include a letter and a number");
+export const forgotSchema = z.object({ email: z.string().trim().toLowerCase().email("Enter a valid email").max(200) });
+export const resetSchema = z.object({ token: z.string().min(20).max(200), password: passwordRule });
 export const signupSchema = z.object({
   name: z.string().trim().min(1, "Enter your name").max(80),
   email: z.string().trim().toLowerCase().email("Enter a valid email").max(200),
