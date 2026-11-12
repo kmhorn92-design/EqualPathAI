@@ -11,20 +11,20 @@ type Muse = { page?: number; page_count?: number; results?: {
 const LEVEL: Record<string, string> = { "Internship": "Internship", "Entry Level": "Entry level", "Mid Level": "Mid level", "Senior Level": "Senior", "management": "Manager" };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** The Muse public Jobs API — live US listings across many industries. No key required (optional key raises limits). */
+/** The Muse public Jobs API — live US listings across many industries. Requires a free API key (register your app at themuse.com/developers); requests without a key are refused. */
 export const themuse: JobAdapter = {
   id: "themuse",
   name: "The Muse",
-  authorization: { method: "Public Jobs API (optional API key for higher rate limits)", envVars: ["MUSE_ENABLED", "MUSE_API_KEY"], termsUrl: "https://www.themuse.com/developers/api/v2", notes: "Credit The Muse and link applicants to the original posting. Set MUSE_ENABLED=false to turn off." },
+  authorization: { method: "Public Jobs API with registered app key", envVars: ["MUSE_API_KEY"], termsUrl: "https://www.themuse.com/developers/api/v2", notes: "Credit The Muse and link applicants to the original posting. Register an app at https://www.themuse.com/developers to get a key." },
   cadence: "daily",
   attribution: "Jobs via The Muse",
   permittedFields: ["title", "company", "location", "description", "applyUrl", "postedAt", "workMode", "experienceLevel", "industry"],
   requiresPartnerApproval: false,
-  configured: () => process.env.MUSE_ENABLED !== "false",
+  configured: () => Boolean(process.env.MUSE_API_KEY),
   async fetchJobs({ signal, log }) {
     const out: NormalizedJob[] = [];
     const pages = Math.min(Number(process.env.MUSE_PAGES ?? 10), 50);
-    const key = process.env.MUSE_API_KEY ? `&api_key=${encodeURIComponent(process.env.MUSE_API_KEY)}` : "";
+    const key = `&api_key=${encodeURIComponent(process.env.MUSE_API_KEY ?? "")}`;
     for (let page = 1; page <= pages; page++) {
       let data: Muse;
       try {

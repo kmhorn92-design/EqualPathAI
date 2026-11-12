@@ -103,6 +103,7 @@ describe("no-key adapters", async () => {
   const { themuse } = await import("@/lib/jobs/adapters/themuse");
   const { remotive } = await import("@/lib/jobs/adapters/remotive");
   it("maps The Muse responses", async () => {
+    vi.stubEnv("MUSE_API_KEY", "k");
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ page: 0, page_count: 1, results: [
       { id: 101, name: "Medical Assistant", contents: "<p>Help patients</p>", publication_date: "2026-11-10T12:00:00Z", locations: [{ name: "Chicago, IL" }], levels: [{ name: "Entry Level" }], categories: [{ name: "Healthcare" }], company: { name: "Acme Health" }, refs: { landing_page: "https://www.themuse.com/jobs/acme/medical-assistant" } },
       { id: 102, name: "Support Specialist", contents: "", publication_date: "2026-11-10T12:00:00Z", locations: [{ name: "Flexible / Remote" }], levels: [], categories: [], company: { name: "Beta" }, refs: { landing_page: "https://www.themuse.com/jobs/beta/support" } },
@@ -119,8 +120,28 @@ describe("no-key adapters", async () => {
     expect(j).toMatchObject({ workMode: "REMOTE", location: "Remote (USA)", employmentType: "Full-time", applyUrl: "https://remotive.com/remote-jobs/customer-support/agent-7", description: "Help customers", industry: "Customer Service" });
     expect(remotive.attribution).toMatch(/Remotive/);
   });
-  it("both are on by default and can be turned off", () => {
-    expect(themuse.configured() && remotive.configured()).toBe(true);
-    vi.stubEnv("MUSE_ENABLED", "false"); expect(themuse.configured()).toBe(false); vi.unstubAllEnvs();
+  it("Remotive is on by default; The Muse needs a key", () => {
+    expect(remotive.configured()).toBe(true);
+    vi.stubEnv("MUSE_API_KEY", ""); expect(themuse.configured()).toBe(false);
+    vi.stubEnv("MUSE_API_KEY", "k"); expect(themuse.configured()).toBe(true); vi.unstubAllEnvs();
+  });
+  it("maps Jobicy responses and keeps the Jobicy link", async () => {
+    const { jobicy } = await import("@/lib/jobs/adapters/jobicy");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ jobs: [
+      { id: 9, url: "https://jobicy.com/jobs/9-billing-specialist", jobTitle: "Medical Billing Specialist", companyName: "Delta &amp; Co", jobIndustry: ["Healthcare"], jobType: ["full-time"], jobGeo: "USA", jobLevel: "Junior", jobDescription: "<p>Process claims</p>", pubDate: "2026-11-10 08:00:00", salaryMin: 42000, salaryMax: 50000, salaryCurrency: "USD", salaryPeriod: "yearly" },
+      { id: 10, jobTitle: "No link" },
+    ] }))));
+    const jobs = await jobicy.fetchJobs({ signal: new AbortController().signal, log: () => {} });
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]).toMatchObject({ company: "Delta & Co", workMode: "REMOTE", location: "Remote (USA)", experienceLevel: "Entry level", applyUrl: "https://jobicy.com/jobs/9-billing-specialist", description: "Process claims", salaryMin: 42000 });
+  });
+  it("Adzuna searches each chosen industry", async () => {
+    const { adzuna } = await import("@/lib/jobs/adapters/adzuna");
+    vi.stubEnv("ADZUNA_APP_ID", "a"); vi.stubEnv("ADZUNA_APP_KEY", "b"); vi.stubEnv("ADZUNA_CATEGORIES", "healthcare-nursing-jobs,it-jobs");
+    const urls: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (u: string) => { urls.push(u); return new Response(JSON.stringify({ results: [] })); }));
+    await adzuna.fetchJobs({ signal: new AbortController().signal, log: () => {} });
+    expect(urls.map((u) => new URL(u).searchParams.get("category"))).toEqual(["healthcare-nursing-jobs", "it-jobs"]);
+    vi.unstubAllEnvs();
   });
 });
