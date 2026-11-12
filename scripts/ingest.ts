@@ -5,5 +5,6 @@ import { pool } from "../src/db";
 
 runAll("cli").then((r) => {
   console.table(r.results.map(({ sourceId, status, fetched, inserted, updated, duplicates, rejected, markedStale }) => ({ sourceId, status, fetched, inserted, updated, duplicates, rejected, markedStale })));
+  for (const x of r.results) if (x.status === "FAILED" || x.status === "PARTIAL") console.log(`✗ ${x.sourceId}: ${x.error?.split("\n")[0] ?? "unknown error"}`);
   console.log("sweep:", r.sweep, "live counts:", r.counts);
 }).catch((e) => { console.error(e); process.exitCode = 1; }).finally(() => pool.end());
