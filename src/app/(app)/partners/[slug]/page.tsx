@@ -41,8 +41,8 @@ export default async function PartnerPage({ params }: { params: Promise<{ slug: 
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <section>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <section className="min-w-0">
           <h2 className="mb-3 text-xl font-semibold">Talk to a recruiter</h2>
           {!u && <div className="mb-4"><Notice tone="cyan"><Lock size={14} className="mr-1 inline" /><Link href="/login" className="underline">Sign in</Link> or <Link href="/signup" className="underline">create a free account</Link> to see emails and phone numbers.</Notice></div>}
           {recs.length === 0 ? <Empty title="No recruiters listed yet" body="Apply through the careers site, or check back soon." /> : (
@@ -61,7 +61,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ slug: 
               </Card>))}</div>)}
           <p className="mt-4 text-xs text-slate-500">Contacting a recruiter doesn&apos;t replace applying. Always apply through the official posting. Recruiters will never ask you to pay a fee; report anything suspicious to EqualPath and ReportFraud.ftc.gov.</p>
         </section>
-        <section>
+        <section className="min-w-0">
           <h2 className="mb-3 text-xl font-semibold">Open jobs</h2>
           <Card>
             {jobs.length === 0 ? <p className="text-sm text-slate-400">No verified listings from {p.name} on the job board right now. {p.website ? "Check their careers site." : ""}</p> : (

@@ -28,10 +28,10 @@ export function AdminTabs() {
   const path = usePathname();
   const tabs = [["/admin", "Overview"], ["/admin/analytics", "Analytics"], ["/admin/users", "Users"], ["/admin/jobs", "Job board"]] as const;
   return (
-    <nav aria-label="Admin sections" className="glass mb-6 inline-flex flex-wrap gap-1 p-1">
+    <nav aria-label="Admin sections" className="glass mb-6 flex max-w-full gap-1 overflow-x-auto p-1 sm:inline-flex">
       {tabs.map(([href, label]) => {
         const on = href === "/admin" ? path === "/admin" : path.startsWith(href);
-        return <Link key={href} href={href} aria-current={on ? "page" : undefined} className={cx("rounded-lg px-4 py-2 text-sm font-medium transition", on ? "bg-amber-500/15 text-amber-100" : "text-slate-400 hover:text-white")}>{label}</Link>;
+        return <Link key={href} href={href} aria-current={on ? "page" : undefined} className={cx("shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition", on ? "bg-amber-500/15 text-amber-100" : "text-slate-400 hover:text-white")}>{label}</Link>;
       })}
     </nav>
   );

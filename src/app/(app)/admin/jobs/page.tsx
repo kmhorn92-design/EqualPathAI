@@ -58,7 +58,16 @@ export default async function AdminJobs({ searchParams }: { searchParams: Promis
       <Card className="mt-6 overflow-x-auto">
         <h2 className="mb-1 font-semibold">Sources</h2>
         <p className="mb-3 text-xs text-slate-400">Keys stay in <code>.env</code>. Pausing stops a source from running without removing its jobs. Respect each source&apos;s limits: Jobicy at most once an hour, Remotive about 4 times a day.</p>
-        <table className="w-full min-w-[760px] text-sm">
+        <ul className="space-y-2 sm:hidden">{sources.map((s) => {
+          const a = ADAPTERS.find((x) => x.id === s.id); const cfg = s.configJson as { envVars?: string[]; isDemo?: boolean };
+          return (
+            <li key={s.id} className="rounded-xl border border-white/10 p-3">
+              <div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="font-medium">{s.name}</div><div className="text-xs text-slate-500">{count0(s.id)} live · last success {ago(s.lastSuccessAt)}</div></div>
+                {s.pausedAt ? <span className="chip-amber shrink-0">Paused</span> : s.enabled ? <span className="chip-green shrink-0">Connected</span> : <span className="shrink-0 text-xs text-slate-500">Not set up</span>}</div>
+              {!s.enabled && <div className="mt-1 break-all text-[11px] text-slate-500">Needs {cfg.envVars?.join(", ") || "setup"}</div>}
+              {s.enabled && <div className="mt-2 flex flex-wrap justify-end gap-1.5"><SourcePause id={s.id} paused={!!s.pausedAt} />{a && !s.pausedAt && <RunIngest sourceId={s.id} />}</div>}
+            </li>); })}</ul>
+        <table className="hidden w-full min-w-[760px] text-sm sm:table">
           <thead className="text-left text-xs uppercase tracking-wider text-slate-500"><tr><th className="py-2">Source</th><th>State</th><th>Live jobs</th><th>Last run</th><th>Last success</th><th className="text-right">Controls</th></tr></thead>
           <tbody>{sources.map((s) => {
             const a = ADAPTERS.find((x) => x.id === s.id); const cfg = s.configJson as { envVars?: string[]; isDemo?: boolean };
@@ -80,12 +89,12 @@ export default async function AdminJobs({ searchParams }: { searchParams: Promis
         <form className="flex flex-wrap items-end gap-3" action="/admin/jobs">
           <label className="min-w-[220px] flex-1 text-sm"><span className="mb-1 block text-xs text-slate-400">Search title or company</span>
             <span className="relative block"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" /><input name="q" defaultValue={q} className="input pl-8" placeholder="e.g. nurse, Amazon" /></span></label>
-          <label className="text-sm"><span className="mb-1 block text-xs text-slate-400">Source</span>
-            <select name="source" defaultValue={sp.source ?? ""} className="input w-auto"><option value="">All</option>{sources.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
-          <label className="text-sm"><span className="mb-1 block text-xs text-slate-400">Status</span>
-            <select name="status" defaultValue={sp.status ?? ""} className="input w-auto"><option value="">Any</option><option value="ACTIVE">Active</option><option value="STALE">Stale</option><option value="UNAVAILABLE">Unavailable</option><option value="EXPIRED">Expired</option></select></label>
-          <label className="text-sm"><span className="mb-1 block text-xs text-slate-400">Show</span>
-            <select name="show" defaultValue={sp.show ?? ""} className="input w-auto"><option value="">On the board</option><option value="hidden">Hidden only</option><option value="demo">Demo only</option><option value="all">Everything</option></select></label>
+          <label className="min-w-0 max-w-full text-sm"><span className="mb-1 block text-xs text-slate-400">Source</span>
+            <select name="source" defaultValue={sp.source ?? ""} className="input w-full sm:w-auto"><option value="">All</option>{sources.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+          <label className="min-w-0 max-w-full text-sm"><span className="mb-1 block text-xs text-slate-400">Status</span>
+            <select name="status" defaultValue={sp.status ?? ""} className="input w-full sm:w-auto"><option value="">Any</option><option value="ACTIVE">Active</option><option value="STALE">Stale</option><option value="UNAVAILABLE">Unavailable</option><option value="EXPIRED">Expired</option></select></label>
+          <label className="min-w-0 max-w-full text-sm"><span className="mb-1 block text-xs text-slate-400">Show</span>
+            <select name="show" defaultValue={sp.show ?? ""} className="input w-full sm:w-auto"><option value="">On the board</option><option value="hidden">Hidden only</option><option value="demo">Demo only</option><option value="all">Everything</option></select></label>
           <button className="btn-primary">Filter</button>
           {(q || sp.source || sp.status || sp.show) && <Link href="/admin/jobs" className="btn-ghost">Clear</Link>}
         </form>
@@ -93,7 +102,15 @@ export default async function AdminJobs({ searchParams }: { searchParams: Promis
 
       <Card className="mt-6 overflow-x-auto">
         <p className="mb-3 text-sm text-slate-400">{total} listing{total === 1 ? "" : "s"}</p>
-        <table className="w-full min-w-[900px] text-sm">
+        <ul className="space-y-3 sm:hidden">{rows.map((r) => (
+          <li key={r.id} className={cx("rounded-xl border border-white/10 p-3", r.hiddenAt && "border-rose-400/30 bg-rose-500/[0.04]")}>
+            <a href={r.applyUrl} target="_blank" rel="noopener noreferrer" className="font-medium hover:text-cyan-200">{r.title}<ExternalLink size={11} className="ml-1 inline text-slate-500" /></a>
+            <div className="text-xs text-slate-400">{r.company} · {r.location || "—"}{r.isDemo && <span className="ml-2"><DemoBadge /></span>}</div>
+            <div className="mt-1 text-xs text-slate-500">{r.sourceId} · {r.status.toLowerCase()} · {(r.postedAt ?? r.firstSeenAt).toLocaleDateString()}</div>
+            {r.hiddenAt && <div className="mt-1 text-xs text-rose-300">Hidden: {r.hiddenReason} · by {r.hiddenBy}</div>}
+            <div className="mt-2 flex justify-end"><JobActions id={r.id} hidden={!!r.hiddenAt} /></div>
+          </li>))}</ul>
+        <table className="hidden w-full min-w-[900px] text-sm sm:table">
           <thead className="text-left text-xs uppercase tracking-wider text-slate-500"><tr><th className="py-2">Listing</th><th>Source</th><th>Type</th><th>Posted</th><th>Status</th><th className="text-right">Moderation</th></tr></thead>
           <tbody>{rows.map((r) => (
             <tr key={r.id} className={cx("border-t border-white/5 align-top", r.hiddenAt && "bg-rose-500/[0.04]")}>

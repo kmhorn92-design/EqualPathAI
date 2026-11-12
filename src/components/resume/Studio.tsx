@@ -133,8 +133,8 @@ export function Studio({ resumeId, title, initial, versions: initVersions, initi
   const sel = versions.find((v) => v.id === selected);
   const original = versions[0];
 
-  const TabBtn = ({ id, label, icon: Icon }: { id: Tab; label: string; icon: typeof Eye }) => (
-    <button role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={cx("flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition", tab === id ? "bg-white/10 text-white" : "text-slate-400 hover:text-white")}><Icon size={15} />{label}</button>
+  const TabBtn = ({ id, label, short, icon: Icon }: { id: Tab; label: string; short: string; icon: typeof Eye }) => (
+    <button role="tab" aria-selected={tab === id} aria-label={label} onClick={() => setTab(id)} className={cx("flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-medium transition sm:flex-none sm:px-4", tab === id ? "bg-white/10 text-white" : "text-slate-400 hover:text-white")}><Icon size={15} className="shrink-0" /><span className="sm:hidden">{short}</span><span className="hidden sm:inline">{label}</span></button>
   );
 
   return (
@@ -144,7 +144,7 @@ export function Studio({ resumeId, title, initial, versions: initVersions, initi
         <div className="flex gap-2">{dirty && <button className="btn-primary" onClick={saveBase} disabled={busy === "save"}>{busy === "save" ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}Save edits</button>}
           <button className="btn-danger" onClick={deleteResume} aria-label="Delete resume"><Trash2 size={16} /></button></div>
       </div>
-      <div role="tablist" className="glass mb-6 inline-flex gap-1 p-1"><TabBtn id="edit" label="1 · Review & edit" icon={PencilLine} /><TabBtn id="tailor" label="2 · Tailor to a job" icon={Wand2} /><TabBtn id="preview" label="3 · Preview & export" icon={Eye} /></div>
+      <div role="tablist" className="glass mb-6 flex gap-1 p-1 sm:inline-flex"><TabBtn id="edit" label="1 · Review & edit" short="Edit" icon={PencilLine} /><TabBtn id="tailor" label="2 · Tailor to a job" short="Tailor" icon={Wand2} /><TabBtn id="preview" label="3 · Preview & export" short="Export" icon={Eye} /></div>
       {err && <div className="mb-4"><ErrorBox>{err}</ErrorBox></div>}
       {msg && <div className="mb-4" role="status"><Notice tone="cyan">{msg}</Notice></div>}
 

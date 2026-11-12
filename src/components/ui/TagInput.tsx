@@ -9,7 +9,7 @@ export function TagInput({ id, value, onChange, suggestions = [], placeholder }:
     <div>
       <div className="input flex min-h-[46px] flex-wrap items-center gap-1.5 py-2">
         {value.map((t) => (
-          <span key={t} className="chip-violet">{t}<button type="button" onClick={() => onChange(value.filter((x) => x !== t))} aria-label={`Remove ${t}`}><X size={12} /></button></span>
+          <span key={t} className="chip-violet">{t}<button type="button" className="-my-2 -mr-2 ml-0.5 grid h-8 w-8 place-items-center rounded-full hover:bg-white/10" onClick={() => onChange(value.filter((x) => x !== t))} aria-label={`Remove ${t}`}><X size={13} /></button></span>
         ))}
         <input id={id} value={draft} placeholder={value.length ? "" : placeholder} onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(draft); } else if (e.key === "Backspace" && !draft && value.length) onChange(value.slice(0, -1)); }}
@@ -17,7 +17,7 @@ export function TagInput({ id, value, onChange, suggestions = [], placeholder }:
       </div>
       {suggestions.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">{suggestions.filter((s) => !value.includes(s)).slice(0, 12).map((s) => (
-          <button type="button" key={s} onClick={() => add(s)} className="chip hover:border-violet-400/40 hover:text-white">+ {s}</button>
+          <button type="button" key={s} onClick={() => add(s)} className="chip min-h-[32px] hover:border-violet-400/40 hover:text-white">+ {s}</button>
         ))}</div>
       )}
     </div>

@@ -15,10 +15,10 @@ export function ContactRecruiter({ recruiter, company, roles }: { recruiter: R; 
   return (
     <div>
       <div className="space-y-1.5 text-sm">
-        <div className="flex items-center gap-2"><Mail size={14} className="shrink-0 text-cyan-300" /><a href={`mailto:${recruiter.email}`} className="truncate text-slate-200 hover:text-cyan-200 hover:underline">{recruiter.email}</a>
-          <button onClick={() => copy("email", recruiter.email)} className="text-slate-500 hover:text-white" aria-label={`Copy ${recruiter.name}'s email`}>{copied === "email" ? <Check size={13} /> : <Copy size={13} />}</button></div>
+        <div className="flex items-center gap-2"><Mail size={14} className="shrink-0 text-cyan-300" /><a href={`mailto:${recruiter.email}`} className="min-w-0 break-all text-slate-200 hover:text-cyan-200 hover:underline">{recruiter.email}</a>
+          <button onClick={() => copy("email", recruiter.email)} className="-my-2 grid h-10 w-10 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-white/5 hover:text-white" aria-label={`Copy ${recruiter.name}'s email`}>{copied === "email" ? <Check size={15} /> : <Copy size={15} />}</button></div>
         {recruiter.phone ? <div className="flex items-center gap-2"><Phone size={14} className="shrink-0 text-cyan-300" /><a href={`tel:${recruiter.phone.replace(/[^\d+]/g, "")}`} className="text-slate-200 hover:text-cyan-200 hover:underline">{recruiter.phone}</a>
-          <button onClick={() => copy("phone", recruiter.phone!)} className="text-slate-500 hover:text-white" aria-label={`Copy ${recruiter.name}'s phone`}>{copied === "phone" ? <Check size={13} /> : <Copy size={13} />}</button></div>
+          <button onClick={() => copy("phone", recruiter.phone!)} className="-my-2 grid h-10 w-10 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-white/5 hover:text-white" aria-label={`Copy ${recruiter.name}'s phone`}>{copied === "phone" ? <Check size={15} /> : <Copy size={15} />}</button></div>
           : <div className="flex items-center gap-2 text-slate-500"><Phone size={14} />Phone not listed; email preferred</div>}
         {recruiter.linkedinUrl && <div className="flex items-center gap-2"><Link2 size={14} className="text-cyan-300" /><a href={recruiter.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-slate-200 hover:underline">LinkedIn profile</a></div>}
       </div>

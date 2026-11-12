@@ -57,10 +57,10 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
         <form className="flex flex-wrap items-end gap-3" action="/admin/users">
           <label className="min-w-[220px] flex-1 text-sm"><span className="mb-1 block text-xs text-slate-400">Search name or email</span>
             <span className="relative block"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" /><input name="q" defaultValue={q} className="input pl-8" placeholder="e.g. kiara or @gmail.com" /></span></label>
-          <label className="text-sm"><span className="mb-1 block text-xs text-slate-400">Role</span>
-            <select name="role" defaultValue={sp.role ?? ""} className="input w-auto"><option value="">Any</option><option value="USER">User</option><option value="ADMIN">Admin</option></select></label>
-          <label className="text-sm"><span className="mb-1 block text-xs text-slate-400">Status</span>
-            <select name="status" defaultValue={sp.status ?? ""} className="input w-auto"><option value="">Any</option><option value="active">Active</option><option value="suspended">Suspended</option></select></label>
+          <label className="min-w-0 max-w-full text-sm"><span className="mb-1 block text-xs text-slate-400">Role</span>
+            <select name="role" defaultValue={sp.role ?? ""} className="input w-full sm:w-auto"><option value="">Any</option><option value="USER">User</option><option value="ADMIN">Admin</option></select></label>
+          <label className="min-w-0 max-w-full text-sm"><span className="mb-1 block text-xs text-slate-400">Status</span>
+            <select name="status" defaultValue={sp.status ?? ""} className="input w-full sm:w-auto"><option value="">Any</option><option value="active">Active</option><option value="suspended">Suspended</option></select></label>
           <button className="btn-primary">Filter</button>
           {(q || sp.role || sp.status) && <Link href="/admin/users" className="btn-ghost">Clear</Link>}
         </form>
@@ -68,7 +68,13 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
 
       <Card className="mt-6 overflow-x-auto">
         <p className="mb-3 text-sm text-slate-400">{total} account{total === 1 ? "" : "s"}</p>
-        <table className="w-full min-w-[860px] text-sm">
+        <ul className="space-y-3 sm:hidden">{rows.map((r) => (
+          <li key={r.id} className={cx("rounded-xl border border-white/10 p-3", r.suspendedAt && "border-rose-400/30 bg-rose-500/[0.04]")}>
+            <div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="font-medium">{r.name || "—"}</div><div className="break-all text-xs text-slate-400">{r.email}</div></div>{r.role === "ADMIN" && <span className="chip-amber shrink-0">Admin</span>}</div>
+            <div className="mt-2 text-xs text-slate-400">Joined {r.createdAt.toLocaleDateString()} · Active {when(r.lastActiveAt)} · {r.suspendedAt ? <span className="text-rose-300">Suspended{r.suspendedReason ? `: ${r.suspendedReason}` : ""}</span> : r.onboardedAt ? <span className="text-emerald-300">Active</span> : "Not onboarded"}</div>
+            <div className="mt-2"><UserActions id={r.id} email={r.email} role={r.role} suspended={!!r.suspendedAt} self={r.id === me.id} /></div>
+          </li>))}</ul>
+        <table className="hidden w-full min-w-[860px] text-sm sm:table">
           <thead className="text-left text-xs uppercase tracking-wider text-slate-500"><tr><th className="py-2">Person</th><th>Role</th><th>Joined</th><th>Last active</th><th>Status</th><th className="text-right">Actions</th></tr></thead>
           <tbody>{rows.map((r) => (
             <tr key={r.id} className={cx("border-t border-white/5 align-top", r.suspendedAt && "bg-rose-500/[0.04]")}>
