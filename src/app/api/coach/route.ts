@@ -32,7 +32,7 @@ export const POST = handler(async ({ req, user }) => {
     const msgs = history.reverse().map((m) => ({ role: m.role as "user" | "assistant", content: decrypt(m.contentEnc) }));
     // Career context only — never demographics.
     const ctx = profile ? `User career context: target roles: ${profile.targetRoles.join(", ") || "n/a"}; industries: ${profile.industries.join(", ") || "n/a"}; location: ${profile.location || "n/a"}; work preference: ${profile.workPreference}; experience: ${profile.experienceLevel || "n/a"}; education: ${profile.education || "n/a"}; skills: ${profile.skills.join(", ") || "n/a"}.` : "";
-    try { reply = await complete(msgs, { system: `Mode: ${TOPICS[thread.topic as Topic]?.prompt ?? TOPICS[i.topic].prompt}\n${ctx}`, maxTokens: 1100 }); }
+    try { reply = await complete(msgs, { system: `Mode: ${TOPICS[thread.topic as Topic]?.prompt ?? TOPICS[i.topic].prompt}\n${ctx}`, maxTokens: 2000 }); }
     catch { reply = fallbackReply(i.topic, profile?.targetRoles[0] ?? ""); }
   } else reply = fallbackReply(i.topic, profile?.targetRoles[0] ?? "");
   await db.insert(schema.chatMessages).values({ threadId: thread.id, role: "assistant", contentEnc: encrypt(reply) });

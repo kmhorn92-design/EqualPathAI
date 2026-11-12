@@ -135,3 +135,21 @@ describe("past tense conversion", () => {
     expect(pastTense("answering")).toBe("Answered");
   });
 });
+
+describe("requirements check", async () => {
+  const { analyzeAgainstJob, requirementLines } = await import("@/lib/resume/analyze");
+  const jd = `Medical Receptionist\nWhat you'll need:\n- Scheduling patient appointments in a busy clinic\n- Answering multi-line phones\n- Bilingual Spanish a plus\nBenefits:\n- Health insurance`;
+  it("reads bullets under a requirements heading and stops at the next heading", () => {
+    const lines = requirementLines(jd);
+    expect(lines).toContain("Answering multi-line phones");
+    expect(lines).not.toContain("Health insurance");
+  });
+  it("finds literal evidence beyond the skills lexicon", () => {
+    const resume = { contact: { name: "A", email: "", phone: "", location: "", links: [] }, summary: "", skills: [], certifications: [], projects: [], education: [],
+      experience: [{ id: "e", title: "Front Desk", company: "Clinic", location: "", start: "", end: "", bullets: ["Scheduled patient appointments for 3 doctors", "Answered phones and greeted visitors"] }] };
+    const a = analyzeAgainstJob(resume as never, jd);
+    const sched = a.requirements.find((r) => r.text.startsWith("Scheduling"));
+    expect(sched?.status).toBe("evidenced");
+    expect(a.requirements.find((r) => r.text.startsWith("Bilingual"))?.status).toBe("not-found");
+  });
+});

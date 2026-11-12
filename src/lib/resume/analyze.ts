@@ -2,7 +2,39 @@ import { findKeywords, hasKeyword } from "./lexicon";
 import { resumeCorpus } from "./parse";
 import type { KeywordAnalysis, ResumeData, Suggestion } from "./types";
 
-const REQ_LINE = /(required|must|minimum|at least|\d\+?\s*years?|certif|licen[cs]e|degree|proficien|experience (with|in))/i;
+const REQ_LINE = /(required|requirement|must|minimum|at least|\d\+?\s*years?|certif|licen[cs]e|degree|diploma|proficien|experience (with|in)|ability to|able to|knowledge of|familiar|skills? (in|with)|preferred|qualif)/i;
+const REQ_HEAD = /^(requirements?|qualifications?|what you('|’)ll need|what we('|’)re looking for|who you are|must[- ]haves?|skills|preferred|nice to have|minimum qualifications|basic qualifications)\b/i;
+const STOP = new Set("a an and are as at be by can for from has have in into is it its of on or our such that the their this to was we will with you your who what able ability must required preferred plus strong excellent good work working years year experience knowledge skills skill including etc other related equivalent per using use".split(" "));
+const words = (s: string) => s.toLowerCase().replace(/[^a-z0-9+#.]+/g, " ").split(" ").map((w) => w.replace(/\.+$/, "")).filter((w) => w.length > 2 && !STOP.has(w));
+const stem = (w: string) => w.replace(/(ing|ed|es|s)$/, "");
+
+/** Requirement lines: those that read like requirements, plus bullets under a "Requirements" style heading. */
+export function requirementLines(jd: string): string[] {
+  const out: string[] = []; let inReq = false;
+  for (const rawLine of jd.split(/\n/)) {
+    const line = rawLine.replace(/^[\s•*\-–·]+/, "").trim();
+    if (!line) continue;
+    if (line.length < 60 && REQ_HEAD.test(line.replace(/[:#]/g, "").trim())) { inReq = true; continue; }
+    if (line.length < 40 && /:$/.test(line)) { inReq = false; continue; }
+    for (const sent of line.split(/(?<=\.)\s+/)) {
+      const t = sent.trim();
+      if (t.length > 12 && t.length < 300 && (inReq || REQ_LINE.test(t))) out.push(t);
+    }
+  }
+  return [...new Set(out)].slice(0, 20);
+}
+
+/** Literal evidence: a lexicon keyword, or most of the requirement's content words appear in the resume. */
+export function evidenceFor(text: string, corpus: string): string | null {
+  const kws = findKeywords(text);
+  const found = kws.find((k) => hasKeyword(corpus, k));
+  if (found) return found;
+  const req = [...new Set(words(text).filter((w) => !/^\d+$/.test(w)))];
+  if (req.length < 2) return null;
+  const have = new Set(words(corpus).map(stem));
+  const hits = req.filter((w) => have.has(stem(w)));
+  return hits.length >= 2 && hits.length / req.length >= 0.5 ? hits.slice(0, 4).join(", ") : null;
+}
 
 /** Transparent keyword comparison. Produces counts and evidence — NOT an ATS score. */
 export function analyzeAgainstJob(resume: ResumeData, jobDescription: string): KeywordAnalysis {
@@ -11,13 +43,10 @@ export function analyzeAgainstJob(resume: ResumeData, jobDescription: string): K
   const matched = jobKeywords.filter((k) => hasKeyword(corpus, k));
   const missing = jobKeywords.filter((k) => !matched.includes(k));
 
-  const reqLines = jobDescription.split(/\n|(?<=\.)\s+/).map((s) => s.replace(/^[\s•*\-–]+/, "").trim())
-    .filter((s) => s.length > 12 && s.length < 300 && REQ_LINE.test(s)).slice(0, 15);
-  const requirements = reqLines.map((text) => {
-    const kws = findKeywords(text);
-    const found = kws.find((k) => hasKeyword(corpus, k));
+  const requirements = requirementLines(jobDescription).map((text) => {
+    const found = evidenceFor(text, corpus);
     const yrs = text.match(/(\d+)\+?\s*years?/i);
-    if (found) return { text, status: "evidenced" as const, evidence: `Your resume mentions ${found}${yrs ? " — confirm you meet the years requirement" : ""}.` };
+    if (found) return { text, status: "evidenced" as const, evidence: `Your resume mentions: ${found}${yrs ? " — confirm you meet the years requirement" : ""}.` };
     return { text, status: "not-found" as const };
   });
 

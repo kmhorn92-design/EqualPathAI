@@ -22,7 +22,7 @@ export async function aiStructure(raw: string, fallback: ResumeData): Promise<Re
 Copy text VERBATIM from the resume. Do not add, infer, or improve anything. Return only JSON.
 
 RESUME:
-"""${raw.slice(0, 14000)}"""` }], { maxTokens: 3000, json: true });
+"""${raw.slice(0, 14000)}"""` }], { maxTokens: 6000, json: true });
     const parsed = resumeDataSchema.safeParse(parseJsonLoose(out));
     if (!parsed.success) return fallback;
     const r = parsed.data;
@@ -46,8 +46,9 @@ JOB DESCRIPTION:
 """${jd.slice(0, 6000)}"""
 
 CURRENT SUMMARY: ${resume.summary || "(none)"}
-BULLETS: ${JSON.stringify(bullets).slice(0, 9000)}` }], { maxTokens: 1800, json: true });
+BULLETS: ${JSON.stringify(bullets).slice(0, 9000)}` }], { maxTokens: 3000, json: true });
   const parsed = parseJsonLoose<{ items?: { target: string; after: string; rationale: string }[]; summary?: { after: string; rationale: string } | null }>(out);
+  if (!parsed) throw new Error("AI returned unreadable suggestions");
   const corpus = resumeCorpus(resume);
   const suggestions: Suggestion[] = []; const blocked: { before: string; reason: string }[] = [];
   let n = 0; const id = () => `ai_${Date.now().toString(36)}${n++}`;

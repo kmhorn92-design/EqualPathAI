@@ -66,20 +66,35 @@ export async function complete(messages: Msg[], opts: { system?: string; maxToke
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: system }] },
           contents: messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
-          generationConfig: { maxOutputTokens: maxTokens, ...(opts.json ? { responseMimeType: "application/json" } : {}) },
+          // Gemini 2.5+/3 "thinking" tokens count against maxOutputTokens, which silently cut replies short.
+          // Keep thinking light and leave headroom so the visible answer is complete.
+          generationConfig: { maxOutputTokens: maxTokens + 4096, ...geminiThinking(model), ...(opts.json ? { responseMimeType: "application/json" } : {}) },
         }),
       });
       if (!r.ok) throw new Error(`LLM error ${r.status}`);
-      const j = (await r.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-      return (j.candidates?.[0]?.content?.parts ?? []).map((x) => x.text ?? "").join("");
+      const j = (await r.json()) as { candidates?: { finishReason?: string; content?: { parts?: { text?: string; thought?: boolean }[] } }[] };
+      const c = j.candidates?.[0];
+      const text = (c?.content?.parts ?? []).filter((x) => !x.thought).map((x) => x.text ?? "").join("");
+      if (!text.trim()) throw new Error(`LLM returned no text (${c?.finishReason ?? "unknown"})`);
+      if (c?.finishReason === "MAX_TOKENS") console.warn("[llm] Gemini reply hit the token limit");
+      return text;
     }
     throw new Error("LLM not configured");
   } finally { clearTimeout(t); }
 }
 
+/** Thinking settings per Gemini family (unknown models get none). */
+export function geminiThinking(model: string): { thinkingConfig?: Record<string, unknown> } {
+  if (/gemini-[3-9]/.test(model)) return { thinkingConfig: { thinkingLevel: "low" } };
+  if (/gemini-2\.5-flash/.test(model)) return { thinkingConfig: { thinkingBudget: 0 } };
+  if (/gemini-2\.5-pro/.test(model)) return { thinkingConfig: { thinkingBudget: 512 } };
+  return {};
+}
+
 /** Extracts the first JSON object/array from a model response. */
 export function parseJsonLoose<T>(text: string): T | null {
   const m = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const raw = m ? m[1] : text.slice(Math.min(...[text.indexOf("{"), text.indexOf("[")].filter((i) => i >= 0)));
+  const starts = [text.indexOf("{"), text.indexOf("[")].filter((i) => i >= 0);
+  const raw = m ? m[1] : starts.length ? text.slice(Math.min(...starts)) : text;
   try { return JSON.parse(raw) as T; } catch { return null; }
 }
