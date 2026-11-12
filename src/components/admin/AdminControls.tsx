@@ -37,14 +37,16 @@ export function AdminTabs() {
   );
 }
 
-export function UserActions({ id, email, role, suspended, self }: { id: string; email: string; role: "USER" | "ADMIN"; suspended: boolean; self: boolean }) {
+export function UserActions({ id, email, role, suspended, self, owner, canManageAdmins }: { id: string; email: string; role: "USER" | "ADMIN"; suspended: boolean; self: boolean; owner?: boolean; canManageAdmins?: boolean }) {
   const { busy, err, run } = useAction();
   const url = `/api/admin/users/${id}`;
   if (self) return <span className="text-xs text-slate-500">You</span>;
+  if (owner) return <span className="text-xs text-slate-500">Protected</span>;
+  if (!canManageAdmins && role === "ADMIN") return <span className="text-xs text-slate-500">Only the owner can change admins</span>;
   const Spin = ({ k, icon }: { k: string; icon: React.ReactNode }) => busy === k ? <Loader2 size={13} className="animate-spin" /> : <>{icon}</>;
   return (
     <div className="flex flex-wrap items-center justify-end gap-1.5">
-      {role === "USER"
+      {!canManageAdmins ? null : role === "USER"
         ? <button className={btn} disabled={!!busy} onClick={() => confirm(`Give ${email} full admin access?`) && run("promote", url, { action: "promote" })}><Spin k="promote" icon={<ShieldCheck size={13} />} />Make admin</button>
         : <button className={btn} disabled={!!busy} onClick={() => confirm(`Remove admin access from ${email}?`) && run("demote", url, { action: "demote" })}><Spin k="demote" icon={<ShieldOff size={13} />} />Remove admin</button>}
       <button className={btn} disabled={!!busy} title="End all of this user's sessions" onClick={() => run("signout", url, { action: "signout" })}><Spin k="signout" icon={<LogOut size={13} />} />Sign out</button>

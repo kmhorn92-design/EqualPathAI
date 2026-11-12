@@ -2,6 +2,7 @@ import { and, count, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { body, handler, HttpError } from "@/lib/api";
+import { isOwnerEmail, ownerConfigured } from "@/lib/auth";
 import { audit } from "@/lib/usage";
 
 const input = z.discriminatedUnion("action", [
@@ -18,6 +19,13 @@ export const PATCH = handler<{ id: string }>(async ({ req, user, params }) => {
   const u = await db.query.users.findFirst({ where: eq(schema.users.id, params.id), columns: { id: true, email: true, role: true, suspendedAt: true } });
   if (!u) throw new HttpError(404, "User not found");
   if (u.id === user.id && i.action !== "signout") throw new HttpError(400, "You can't change your own role or status. Ask another admin.");
+  const actorIsOwner = isOwnerEmail(user.email);
+  // The owner's account is untouchable by anyone else.
+  if (isOwnerEmail(u.email) && u.id !== user.id) throw new HttpError(403, "This is the owner account. Other admins can't change, suspend or sign it out.");
+  if (ownerConfigured() && !actorIsOwner) {
+    if (i.action === "promote" || i.action === "demote") throw new HttpError(403, "Only the owner can give or remove admin access.");
+    if (u.role === "ADMIN") throw new HttpError(403, "Only the owner can change another admin's account.");
+  }
   const activeAdmins = async () => (await db.select({ n: count() }).from(schema.users).where(and(eq(schema.users.role, "ADMIN"), isNull(schema.users.suspendedAt))))[0].n;
 
   if (i.action === "promote") await db.update(schema.users).set({ role: "ADMIN" }).where(eq(schema.users.id, u.id));

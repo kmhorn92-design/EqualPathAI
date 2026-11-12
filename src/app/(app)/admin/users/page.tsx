@@ -2,7 +2,7 @@ import Link from "next/link";
 import { and, count, desc, eq, gte, ilike, isNotNull, isNull, like, or, type SQL } from "drizzle-orm";
 import { Search } from "lucide-react";
 import { db, schema } from "@/db";
-import { requirePageAdmin } from "@/lib/auth";
+import { isOwnerEmail, ownerConfigured, requirePageAdmin } from "@/lib/auth";
 import { Card, PageHeader, Stat, cx } from "@/components/ui";
 import { UserActions } from "@/components/admin/AdminControls";
 
@@ -41,11 +41,18 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
     db.select().from(schema.auditLogs).where(like(schema.auditLogs.action, "user.%")).orderBy(desc(schema.auditLogs.createdAt)).limit(10),
   ]);
   const pages = Math.max(1, Math.ceil(total / PAGE));
+  const iAmOwner = isOwnerEmail(me.email);
+  const canManageAdmins = iAmOwner || !ownerConfigured();
+  const roleChip = (r: { email: string; role: string }) => isOwnerEmail(r.email) ? <span className="chip-violet">Owner</span> : r.role === "ADMIN" ? <span className="chip-amber">Admin</span> : <span className="text-slate-400">User</span>;
   const link = (p: Record<string, string | undefined>) => "/admin/users?" + new URLSearchParams(Object.entries({ q, role: sp.role, status: sp.status, ...p }).filter(([, v]) => v) as [string, string][]).toString();
 
   return (
     <>
       <PageHeader kicker="Admin" title="Users" subtitle="Account status and access only. Admins never see resumes, coach chats, or applications from here." />
+      <p className="-mt-2 mb-5 text-sm text-slate-400">{!ownerConfigured()
+        ? <>No owner is set yet, so every admin can give admin access. Set <code>OWNER_EMAIL</code> in your hosting settings to lock that to one person.</>
+        : iAmOwner ? <>You&apos;re the <b className="text-violet-200">owner</b>. Only you can give or remove admin access, and no one else can change, suspend or sign out your account.</>
+        : <>Only the owner can give or remove admin access or change another admin&apos;s account.</>}</p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Accounts" value={all} />
         <Stat label="Active (7 days)" value={active7} />
@@ -70,22 +77,22 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
         <p className="mb-3 text-sm text-slate-400">{total} account{total === 1 ? "" : "s"}</p>
         <ul className="space-y-3 sm:hidden">{rows.map((r) => (
           <li key={r.id} className={cx("rounded-xl border border-white/10 p-3", r.suspendedAt && "border-rose-400/30 bg-rose-500/[0.04]")}>
-            <div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="font-medium">{r.name || "—"}</div><div className="break-all text-xs text-slate-400">{r.email}</div></div>{r.role === "ADMIN" && <span className="chip-amber shrink-0">Admin</span>}</div>
+            <div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="font-medium">{r.name || "—"}</div><div className="break-all text-xs text-slate-400">{r.email}</div></div>{r.role === "ADMIN" && <span className="shrink-0">{roleChip(r)}</span>}</div>
             <div className="mt-2 text-xs text-slate-400">Joined {r.createdAt.toLocaleDateString()} · Active {when(r.lastActiveAt)} · {r.suspendedAt ? <span className="text-rose-300">Suspended{r.suspendedReason ? `: ${r.suspendedReason}` : ""}</span> : r.onboardedAt ? <span className="text-emerald-300">Active</span> : "Not onboarded"}</div>
-            <div className="mt-2"><UserActions id={r.id} email={r.email} role={r.role} suspended={!!r.suspendedAt} self={r.id === me.id} /></div>
+            <div className="mt-2"><UserActions id={r.id} email={r.email} role={r.role} suspended={!!r.suspendedAt} self={r.id === me.id} owner={isOwnerEmail(r.email)} canManageAdmins={canManageAdmins} /></div>
           </li>))}</ul>
         <table className="hidden w-full min-w-[860px] text-sm sm:table">
           <thead className="text-left text-xs uppercase tracking-wider text-slate-500"><tr><th className="py-2">Person</th><th>Role</th><th>Joined</th><th>Last active</th><th>Status</th><th className="text-right">Actions</th></tr></thead>
           <tbody>{rows.map((r) => (
             <tr key={r.id} className={cx("border-t border-white/5 align-top", r.suspendedAt && "bg-rose-500/[0.04]")}>
               <td className="py-3"><div className="font-medium">{r.name || "—"}</div><div className="text-xs text-slate-400">{r.email}</div></td>
-              <td className="py-3">{r.role === "ADMIN" ? <span className="chip-amber">Admin</span> : <span className="text-slate-400">User</span>}</td>
+              <td className="py-3">{roleChip(r)}</td>
               <td className="py-3 text-xs text-slate-400">{r.createdAt.toLocaleDateString()}</td>
               <td className="py-3 text-xs text-slate-400">{when(r.lastActiveAt)}</td>
               <td className="py-3 text-xs">{r.suspendedAt
                 ? <span className="text-rose-300" title={r.suspendedReason ?? ""}>Suspended {r.suspendedAt.toLocaleDateString()}{r.suspendedReason && <span className="block max-w-[200px] truncate text-slate-500">{r.suspendedReason}</span>}</span>
                 : r.onboardedAt ? <span className="text-emerald-300">Active</span> : <span className="text-slate-400">Signed up, not onboarded</span>}</td>
-              <td className="py-3"><UserActions id={r.id} email={r.email} role={r.role} suspended={!!r.suspendedAt} self={r.id === me.id} /></td>
+              <td className="py-3"><UserActions id={r.id} email={r.email} role={r.role} suspended={!!r.suspendedAt} self={r.id === me.id} owner={isOwnerEmail(r.email)} canManageAdmins={canManageAdmins} /></td>
             </tr>))}</tbody>
         </table>
         {rows.length === 0 && <p className="py-6 text-center text-sm text-slate-400">No accounts match.</p>}
