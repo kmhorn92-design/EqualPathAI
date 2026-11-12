@@ -58,7 +58,7 @@ export async function complete(messages: Msg[], opts: { system?: string; maxToke
       return j.choices[0]?.message.content ?? "";
     }
     if (provider === "gemini") {
-      const model = process.env.LLM_MODEL ?? "gemini-2.5-flash";
+      const model = process.env.GEMINI_MODEL ?? (process.env.LLM_PROVIDER === "gemini" ? process.env.LLM_MODEL : undefined) ?? "gemini-3.6-flash";
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
         method: "POST", signal: ctrl.signal,
         // Key goes in a header, never in the URL (URLs end up in logs).
