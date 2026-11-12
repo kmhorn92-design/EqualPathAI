@@ -5,6 +5,8 @@ import "./globals.css";
 import { getUser } from "@/lib/auth";
 import { db, schema } from "@/db";
 import { eq } from "drizzle-orm";
+import { AppAssistant } from "@/components/assistant/AppAssistant";
+import { llmEnabled } from "@/lib/llm";
 
 export const metadata: Metadata = {
   title: { default: "EqualPath AI — Your Skills. Your Potential. Your Opportunity.", template: "%s · EqualPath AI" },
@@ -23,6 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-violet-600 focus:px-4 focus:py-2">Skip to content</a>
         {children}
+        <AppAssistant ai={llmEnabled()} />
       </body>
     </html>
   );

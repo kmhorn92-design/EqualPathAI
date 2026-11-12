@@ -64,3 +64,36 @@ describe("calendar file", () => {
     expect(ics.split("\r\n")[0]).toBe("BEGIN:VCALENDAR");
   });
 });
+
+describe("site assistant (help-guide retrieval)", async () => {
+  const { guideAnswer } = await import("@/lib/assistant");
+  const { searchGuide, SITE_GUIDE } = await import("@/content/site-guide");
+  it("routes common questions to the right page", () => {
+    expect(guideAnswer("how do I upload my resume?").links[0].href).toBe("/resume");
+    expect(guideAnswer("where can I find remote jobs").links[0].href).toBe("/jobs");
+    expect(guideAnswer("can I talk to a recruiter at a company?").links[0].href).toBe("/partners");
+    expect(guideAnswer("book a session with a coach").links[0].href).toBe("/coaches");
+    expect(guideAnswer("do you train AI on my resume").links[0].href).toBe("/privacy");
+  });
+  it("never invents an ATS guarantee", () => {
+    expect(guideAnswer("will my resume pass the ATS?").answer).toMatch(/No tool can honestly guarantee/);
+  });
+  it("admits when it doesn't know", () => {
+    expect(searchGuide("what's the weather in Paris")).toHaveLength(0);
+    expect(guideAnswer("what's the weather in Paris").answer).toMatch(/not sure/);
+  });
+  it("every guide entry has a unique id and a link", () => {
+    expect(new Set(SITE_GUIDE.map((e) => e.id)).size).toBe(SITE_GUIDE.length);
+    for (const e of SITE_GUIDE) expect(e.link?.href).toMatch(/^\//);
+  });
+});
+
+describe("assistant links", async () => {
+  const { guideAnswer } = await import("@/lib/assistant");
+  it("never returns duplicate links", () => {
+    for (const q of ["how do I find hybrid jobs?", "remote job board listings", "resume upload tailor"]) {
+      const hrefs = guideAnswer(q).links.map((l) => l.href);
+      expect(new Set(hrefs).size).toBe(hrefs.length);
+    }
+  });
+});

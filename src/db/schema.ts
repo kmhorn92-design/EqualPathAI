@@ -327,3 +327,50 @@ export const usageDaily = pgTable("usage_daily", {
   event: text("event").notNull(),
   count: integer("count").notNull().default(0),
 }, (t) => [primaryKey({ columns: [t.day, t.event] })]);
+
+/**
+ * Hiring partners. A partner is shown publicly only when APPROVED *and* an admin has confirmed
+ * a partnership agreement is on file — so we never imply a collaboration that doesn't exist.
+ */
+export const partners = pgTable("partners", {
+  id: id(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  industry: text("industry").notNull(),
+  description: text("description").notNull(),
+  website: text("website"),
+  brandColor: text("brand_color").notNull().default("#8B5CF6"),
+  hiringFor: text("hiring_for").array().notNull().default(sql`'{}'`),
+  locations: text("locations").array().notNull().default(sql`'{}'`),
+  workModes: workModeEnum("work_modes").array().notNull().default(sql`'{}'`),
+  /** Exact company name(s) as they appear on job listings, used to show this partner's open jobs. */
+  jobCompanyNames: text("job_company_names").array().notNull().default(sql`'{}'`),
+  partnerSince: text("partner_since"),
+  agreementConfirmedAt: timestamp("agreement_confirmed_at", { withTimezone: true }),
+  agreementConfirmedBy: text("agreement_confirmed_by"),
+  status: moderationEnum("status").notNull().default("PENDING"),
+  isDemo: boolean("is_demo").notNull().default(false),
+  createdAt: created(),
+  updatedAt: updated(),
+});
+
+/**
+ * Partner recruiters. Contact details are published only with the recruiter's documented consent
+ * (consent_confirmed_at is required), and can be hidden or removed at any time.
+ */
+export const recruiters = pgTable("recruiters", {
+  id: id(),
+  partnerId: text("partner_id").notNull().references(() => partners.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  title: text("title").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  specialties: text("specialties").array().notNull().default(sql`'{}'`),
+  workModes: workModeEnum("work_modes").array().notNull().default(sql`'{}'`),
+  linkedinUrl: text("linkedin_url"),
+  consentConfirmedAt: timestamp("consent_confirmed_at", { withTimezone: true }).notNull(),
+  consentConfirmedBy: text("consent_confirmed_by").notNull(),
+  active: boolean("active").notNull().default(true),
+  isDemo: boolean("is_demo").notNull().default(false),
+  createdAt: created(),
+}, (t) => [index("recruiters_partner_idx").on(t.partnerId)]);

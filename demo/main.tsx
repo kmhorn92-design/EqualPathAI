@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ArrowRight, Check, X, Wand2, FileText, Briefcase, KanbanSquare, ClipboardCheck, GraduationCap, Scale, Home, ShieldCheck,
-  AlertTriangle, Columns2, Users, Globe, Shuffle, Building2, LayoutGrid, Upload, Sparkles, MapPin, Clock, Bookmark, BookmarkCheck, ExternalLink, Info, Plus, Lightbulb, Copy, RotateCcw, Award,
+  AlertTriangle, Columns2, Users, Handshake, Globe, Shuffle, Building2, LayoutGrid, Upload, Sparkles, MapPin, Clock, Bookmark, BookmarkCheck, ExternalLink, Info, Plus, Lightbulb, Copy, RotateCcw, Award,
 } from "lucide-react";
 import { structureText, resumeCorpus } from "@/lib/resume/parse";
 import { analyzeAgainstJob, ruleSuggestions, applySuggestions, guardSuggestion } from "@/lib/resume/analyze";
@@ -27,6 +27,9 @@ import { HeroVisual } from "@/components/landing/HeroVisual";
 import { Card, Notice, Progress, DemoBadge, cx, Empty } from "@/components/ui";
 import { Landing } from "./landing";
 import { Coaches, COACHES, type Booking, type Arrangement } from "./coaches";
+import { Partners, PARTNERS } from "./partners";
+import { AssistantWidget } from "@/components/assistant/AssistantWidget";
+import { guideAnswer } from "@/lib/assistant";
 
 const SAMPLE_RESUME = `Jordan Rivera (DEMO)
 Baltimore, MD | (410) 555-0134 | jordan.demo@example.com | linkedin.com/in/demo
@@ -61,11 +64,11 @@ Requirements:
 - Must be proficient in Microsoft Office
 Preferred: Bilingual (Spanish), HIPAA knowledge.`;
 
-type View = "home" | "studio" | "jobs" | "coaches" | "tracker" | "practice" | "learn" | "fair";
-const NAV: { id: View; label: string; icon: typeof Home }[] = [
-  { id: "home", label: "Home", icon: Home }, { id: "studio", label: "Resume Studio", icon: FileText }, { id: "jobs", label: "Job Board", icon: Briefcase }, { id: "coaches", label: "Career Coaches", icon: Users },
-  { id: "tracker", label: "Applications", icon: KanbanSquare }, { id: "practice", label: "Assessment Academy", icon: ClipboardCheck },
-  { id: "learn", label: "Learning Hub", icon: GraduationCap }, { id: "fair", label: "Fair Hiring", icon: Scale },
+type View = "home" | "studio" | "jobs" | "partners" | "coaches" | "tracker" | "practice" | "learn" | "fair";
+const NAV: { id: View; label: string; icon: typeof Home; short?: string }[] = [
+  { id: "home", label: "Home", icon: Home }, { id: "studio", label: "Resume Studio", short: "Resume", icon: FileText }, { id: "jobs", label: "Job Board", icon: Briefcase }, { id: "partners", label: "Hiring Partners", short: "Partners", icon: Handshake }, { id: "coaches", label: "Career Coaches", short: "Coaches", icon: Users },
+  { id: "tracker", label: "Applications", icon: KanbanSquare }, { id: "practice", label: "Assessment Academy", short: "Practice", icon: ClipboardCheck },
+  { id: "learn", label: "Learning Hub", short: "Learn", icon: GraduationCap }, { id: "fair", label: "Fair Hiring", icon: Scale },
 ];
 
 type Job = ReturnType<typeof demoJobs>[number] & { id: string; lastVerifiedAt: Date };
@@ -102,6 +105,21 @@ function DemoApp() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [coachArr, setCoachArr] = useState<Arrangement | undefined>();
   const toCoaches = (a?: Arrangement) => { setCoachArr(a); go("coaches"); };
+  const [jobQ, setJobQ] = useState("");
+  const toJobs = (q = "") => { setJobQ(q); go("jobs"); };
+  // Map full-app routes in assistant answers onto demo views.
+  const routeToView = (href: string): View => {
+    const h = href.replace(/#.*$/, "");
+    if (h.startsWith("/resume") || h.startsWith("/templates")) return "studio";
+    if (h.startsWith("/jobs")) return "jobs";
+    if (h.startsWith("/partners")) return "partners";
+    if (h.startsWith("/coaches") || h.startsWith("/sessions")) return "coaches";
+    if (h.startsWith("/tracker")) return "tracker";
+    if (h.startsWith("/assessments")) return "practice";
+    if (h.startsWith("/learn")) return "learn";
+    if (h.startsWith("/fair-hiring")) return "fair";
+    return "home";
+  };
   const [apps, setApps] = useState<App[]>([
     { id: "a1", company: "DEMO Northwind Health", title: "Patient Access Representative", status: "APPLIED", appliedAt: new Date(Date.now() - 9 * 864e5).toISOString(), updatedAt: new Date().toISOString() },
     { id: "a2", company: "DEMO Contoso Labs", title: "Support Specialist", status: "INTERVIEWING", appliedAt: new Date(Date.now() - 14 * 864e5).toISOString(), updatedAt: new Date().toISOString() },
@@ -117,24 +135,27 @@ function DemoApp() {
           <button onClick={() => go("home")} className="flex shrink-0 items-center gap-2" aria-label="EqualPath AI home"><Mark /><span className="hidden whitespace-nowrap font-display text-lg font-semibold sm:inline">EqualPath <span className="gradient-text">AI</span></span></button>
           <span className="chip-amber hidden whitespace-nowrap 2xl:inline-flex">Interactive demo · sample data</span>
           <nav aria-label="Main" className="ml-auto flex gap-1 overflow-x-auto">
-            {NAV.slice(1).map(({ id, label, icon: Icon }) => (
+            {NAV.slice(1).map(({ id, label, short, icon: Icon }) => (
               <button key={id} onClick={() => go(id)} aria-current={view === id ? "page" : undefined} aria-label={label} title={label}
                 className={cx("flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition", view === id ? "bg-gradient-to-r from-violet-500/25 to-cyan-500/10 text-white ring-1 ring-violet-400/30" : "text-slate-400 hover:text-white")}>
-                <Icon size={15} /><span className="hidden whitespace-nowrap xl:inline">{label}</span>
+                <Icon size={15} /><span className="hidden whitespace-nowrap xl:inline">{short ?? label}</span>
               </button>))}
           </nav>
         </div>
       </header>
-      {view === "home" && <main id="main" className="relative"><Landing onEnter={(to) => go(to ?? "studio")} onCoaches={toCoaches} /></main>}
+      {view === "home" && <main id="main" className="relative"><Landing onEnter={(to) => go(to ?? "studio")} onCoaches={toCoaches} onPartners={() => go("partners")} partners={PARTNERS.map((x) => ({ name: x.name, industry: x.industry, color: x.color, recruiters: x.recruiters.length }))} /></main>}
       {view !== "home" && <main id="main" className="relative mx-auto max-w-7xl px-4 py-8">
         {view === "studio" && <Studio resume={resume} setResume={setResume} />}
-        {view === "jobs" && <Jobs jobs={jobs} resume={resume} saved={saved} setSaved={setSaved} track={track} toCoaches={toCoaches} />}
+        {view === "partners" && <Partners jobs={jobs} goJobs={(c) => toJobs(c)} />}
+        {view === "jobs" && <Jobs key={jobQ} initialQuery={jobQ} jobs={jobs} resume={resume} saved={saved} setSaved={setSaved} track={track} toCoaches={toCoaches} />}
         {view === "coaches" && <Coaches key={coachArr ?? "ALL"} initial={coachArr} bookings={bookings} setBookings={setBookings} />}
         {view === "tracker" && <Tracker apps={apps} setApps={setApps} />}
         {view === "practice" && <Practice />}
         {view === "learn" && <Learn />}
         {view === "fair" && <Fair />}
       </main>}
+      <AssistantWidget ask={async (m) => { await new Promise((r) => setTimeout(r, 350)); return guideAnswer(m[m.length - 1].content); }} onNavigate={(href) => go(routeToView(href))}
+        note="Demo: answers come from the EqualPath help guide. The full app uses AI grounded in the same guide." />
       <footer className="relative border-t border-white/[0.06] py-6 text-center text-xs text-slate-500">
         Demo of the EqualPath AI codebase. Everything you enter stays in this browser tab, and nothing is sent anywhere.
       </footer>
@@ -321,8 +342,8 @@ function Studio({ resume, setResume }: { resume: ResumeData; setResume: (r: Resu
 const ago = (d: Date | null | undefined) => { if (!d) return "unknown"; const h = (Date.now() - d.getTime()) / 36e5; return h < 1 ? "just now" : h < 24 ? `${Math.floor(h)}h ago` : `${Math.floor(h / 24)}d ago`; };
 const money = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
-function Jobs({ jobs, resume, saved, setSaved, track, toCoaches }: { jobs: Job[]; resume: ResumeData; saved: Set<string>; setSaved: (s: Set<string>) => void; track: (j: Job) => void; toCoaches: (a?: Arrangement) => void }) {
-  const [q, setQ] = useState(""); const [mode, setMode] = useState(""); const [ind, setInd] = useState(""); const [onlySaved, setOnlySaved] = useState(false); const [min, setMin] = useState("");
+function Jobs({ jobs, resume, saved, setSaved, track, toCoaches, initialQuery = "" }: { initialQuery?: string; jobs: Job[]; resume: ResumeData; saved: Set<string>; setSaved: (s: Set<string>) => void; track: (j: Job) => void; toCoaches: (a?: Arrangement) => void }) {
+  const [q, setQ] = useState(initialQuery); const [mode, setMode] = useState(""); const [ind, setInd] = useState(""); const [onlySaved, setOnlySaved] = useState(false); const [min, setMin] = useState("");
   const [open, setOpen] = useState<string | null>(null); const [tracked, setTracked] = useState<Set<string>>(new Set());
   const industries = [...new Set(jobs.map((j) => j.industry).filter(Boolean))] as string[];
   const list = jobs.filter((j) => (!q || `${j.title} ${j.company} ${j.description} ${j.location}`.toLowerCase().includes(q.toLowerCase())) && (!mode || j.workMode === mode) && (!ind || j.industry === ind) && (!onlySaved || saved.has(j.id)) && (!min || (j.salaryMax ?? 0) >= Number(min)));

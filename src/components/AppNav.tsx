@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, FileText, LayoutTemplate, MessageSquareText, ClipboardCheck, GraduationCap, Scale, Users, Briefcase,
-  KanbanSquare, Shield, Settings, Menu, X, Bell, LogOut, CalendarCheck, Presentation,
+  KanbanSquare, Shield, Settings, Menu, X, Bell, LogOut, CalendarCheck, Presentation, Handshake,
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { cx } from "./ui";
@@ -19,6 +19,7 @@ const NAV = [
   { href: "/assessments", label: "Assessment Academy", icon: ClipboardCheck, auth: true },
   { href: "/learn", label: "Learning Hub", icon: GraduationCap },
   { href: "/fair-hiring", label: "Fair Hiring", icon: Scale },
+  { href: "/partners", label: "Hiring Partners", icon: Handshake },
   { href: "/coaches", label: "Career Coaches", icon: Users },
   { href: "/sessions", label: "My Sessions", icon: CalendarCheck, auth: true },
 ];

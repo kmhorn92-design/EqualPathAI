@@ -6,6 +6,7 @@ import { ADAPTERS, DAILY_TARGET } from "@/lib/jobs/registry";
 import { Card, DemoBadge, PageHeader, Stat, cx } from "@/components/ui";
 import { PipelineChart } from "@/components/charts/Charts";
 import { Moderate, NewArticle, Resolve, RunIngest, VerifyCredential } from "@/components/admin/AdminActions";
+import { PartnerAdmin } from "@/components/admin/PartnerAdmin";
 
 export const metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
@@ -29,6 +30,7 @@ export default async function Admin() {
     db.select({ n: count() }).from(schema.users),
     db.select({ d: sql<number>`coalesce(sum(${schema.ingestionRuns.duplicates}),0)::int`, r: sql<number>`coalesce(sum(${schema.ingestionRuns.rejected}),0)::int` }).from(schema.ingestionRuns).where(gte(schema.ingestionRuns.startedAt, day)),
   ]);
+  const [partnerRows, recruiterRows] = await Promise.all([db.select().from(schema.partners).orderBy(schema.partners.name), db.select().from(schema.recruiters).orderBy(schema.recruiters.name)]);
   const n = (s: string, demo = false) => byStatus.find((x) => x.status === s && x.isDemo === demo)?.n ?? 0;
   const live = n("ACTIVE");
 
@@ -87,6 +89,9 @@ export default async function Admin() {
           <ul className="divide-y divide-white/5">{articles.map((a) => <li key={a.id} className="flex items-center justify-between gap-2 py-2 text-sm"><span>{a.title} {a.isDemo && <DemoBadge />} <span className={cx("chip ml-1", a.status === "APPROVED" ? "chip-green" : a.status === "REJECTED" ? "chip-rose" : "chip-amber")}>{a.status}</span></span>{a.status === "PENDING" && <Moderate kind="articles" id={a.id} />}</li>)}</ul>
         </Card>
       </div>
+
+      <Card className="mt-6"><PartnerAdmin partners={partnerRows.map((pr) => ({ id: pr.id, slug: pr.slug, name: pr.name, industry: pr.industry, status: pr.status, isDemo: pr.isDemo, agreementConfirmedAt: pr.agreementConfirmedAt?.toISOString() ?? null,
+        recruiters: recruiterRows.filter((r) => r.partnerId === pr.id).map((r) => ({ id: r.id, name: r.name, title: r.title, email: r.email, phone: r.phone, active: r.active, isDemo: r.isDemo })) }))} /></Card>
 
       <Card className="mt-6">
         <h2 className="mb-1 font-semibold">Aggregated product usage (last 14 days)</h2><p className="mb-3 text-xs text-slate-500">Counts only. No user identifiers are recorded for analytics.</p>

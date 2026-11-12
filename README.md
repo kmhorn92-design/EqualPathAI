@@ -40,6 +40,7 @@ Sign in as the seeded admin (`admin@equalpath.local`) to see `/admin`, or create
 | `npm test` | Unit tests (Vitest): crypto, parsing, analysis, anti-fabrication guard, exports, adapters, dedup, retry, grading |
 | `npx tsx scripts/e2e.mts` | End-to-end API walkthrough against a running dev server (`BASE=http://localhost:3000`, start it with `ENABLE_DEMO_JOBS=true`) |
 | `npx tsx scripts/e2e-booking.mts` | End-to-end coach booking test (client + coach + security checks), after `npm run db:seed` |
+| `npx tsx scripts/e2e-partners.mts` | End-to-end: partner/recruiter publishing rules, contact visibility, site assistant |
 | `npx tsx scripts/e2e-booking-race.mts` | Fires 8 simultaneous requests for one slot and checks that exactly one succeeds |
 | `npm run typecheck` | TypeScript |
 | `npm run db:generate` | Generate a new SQL migration after editing `src/db/schema.ts` |
@@ -64,6 +65,8 @@ Sign in as the seeded admin (`admin@equalpath.local`) to see `/admin`, or create
 | Fair Hiring Resource Center | ✅ Fully functional (educational content + official links) |
 | Career Coaches: directory with Remote / Hybrid / On-site focus filter, submissions, moderation, credential verification | ✅ Functional. Only DEMO coaches are seeded; real coaches must apply and be verified |
 | **In-app coach booking**: weekly availability, time-zone-aware slots, requests, confirm/decline/cancel/complete, meeting links, calendar (.ics) files, opt-in resume sharing, notifications, Coach Portal, My Sessions | ✅ Fully functional. Payments are arranged directly with coaches (no payment processing). Email/SMS reminders would need an email provider |
+| **Site assistant** (chat bubble on every page): answers "how do I…?" questions about EqualPath and links to the right page | ✅ Works without a key (answers straight from the help guide in `src/content/site-guide.ts`). With an Anthropic/Gemini/OpenAI key it answers conversationally, grounded in the same guide |
+| **Hiring Partners**: partner company pages, recruiter cards (name, title, email, phone), message template, partner's open jobs, admin management | ✅ Fully functional. Ships with fictional DEMO partners only; add real partners in /admin once agreements and recruiter consent are in place |
 | Application Tracker (kanban/list, drag-drop, notes, reminders → notifications, follow-up drafts) | ✅ Fully functional |
 | Privacy: consent, retention, export, deletion | ✅ Fully functional |
 | Admin dashboard (feed freshness, permissions, runs, alerts, dedup stats, moderation, aggregate usage) | ✅ Fully functional |
@@ -114,6 +117,17 @@ Search uses a weighted Postgres `tsvector` (GIN index) with `websearch_to_tsquer
 * **Lifecycle:** `REQUESTED → CONFIRMED | DECLINED`, `CONFIRMED → CANCELLED | COMPLETED`. Video sessions need an https meeting link to confirm. Clients can cancel up to 2 hours before a confirmed session. Every change notifies the other party in the app and is written to the audit log.
 * **Privacy:** goals, accessibility needs and coach notes are encrypted. Coaches see the client's name, never their email. A resume is visible only if the client chose a specific version for that session, and only while it's active. Sessions are included in data export and deleted with the account.
 
+### Hiring partners & recruiter contacts
+* **No implied partnerships.** A company appears publicly only when an admin marks it approved *and* confirms that a signed partnership agreement is on file. Without that it stays a draft (enforced by the API).
+* **Consent for contact details.** A recruiter can only be added after the admin confirms the recruiter's written consent to publish their name, title, work email and phone. Phone is optional. Admins can hide a recruiter instantly or delete their details entirely on request.
+* **Limited exposure.** Emails and phone numbers are shown only to signed-in users. Signed-out visitors see names and titles only, which reduces scraping. EqualPath never sends messages on a user's behalf; the message template opens the user's own email app.
+* **Open jobs** come from the verified job board, matched on the company names configured for each partner.
+
+### Site assistant
+* Stateless: conversations aren't stored. Rate-limited to 40 questions per hour per IP, and available to signed-out visitors.
+* The LLM is instructed to answer only from the help guide and to say when it doesn't know, so it won't invent features, prices, partners or people. Without a key, or if the provider fails, answers come directly from the guide.
+* To teach it something new, add an entry to `src/content/site-guide.ts`. The same file powers the demo's assistant.
+
 ### AI safety guarantees (enforced in code)
 * **No fabrication.** AI rewrites go through `guardSuggestion`, which rejects any suggestion that adds numbers/metrics or skill keywords not already in the resume, or that balloons the length. Blocked suggestions are counted and shown to the user. AI-assisted parsing keeps only text grounded in the uploaded document.
 * **Human approval.** Nothing changes until the user accepts it. Pending suggestions are never applied. Every saved version stores the decision log.
@@ -155,6 +169,7 @@ Search uses a weighted Postgres `tsvector` (GIN index) with `websearch_to_tsquer
 - [ ] Sign data agreements for each employer/staffing feed; obtain Indeed/LinkedIn partner approval before enabling those adapters.
 - [ ] Replace example testimonials on the landing page with genuine, consented ones (currently labeled "Example").
 - [ ] Verify real coaches' credentials with issuers before marking them verified.
+- [ ] Before adding a real hiring partner, have a signed agreement that allows listing them, and written consent from each recruiter whose contact details you publish. Delete the DEMO partners in /admin.
 - [ ] Recheck external resource links periodically (federal guidance pages change; e.g. the EEOC removed its AI technical-assistance documents in January 2025, and the lessons now reflect that).
 - [ ] Accessibility audit with assistive-technology users (WCAG 2.2 AA target).
 - [ ] Swap the in-memory rate limiter for a shared store if running more than one instance.

@@ -4,6 +4,7 @@ import { Logo } from "@/components/Logo";
 import { LoadingScreen } from "@/components/landing/LoadingScreen";
 import { HeroVisual } from "@/components/landing/HeroVisual";
 import { getUser } from "@/lib/auth";
+import { listPartners } from "@/lib/partners";
 
 const FEATURES = [
   { icon: FileSearch, title: "AI Resume Studio", body: "Upload your resume, compare it to a job post, and see which keywords already appear in your experience. You approve every suggested change." },
@@ -38,6 +39,7 @@ const EXAMPLE_TESTIMONIALS = [
 
 export default async function Landing() {
   const user = await getUser().catch(() => null);
+  const partnerList = await listPartners().catch(() => []);
   return (
     <div className="relative overflow-hidden">
       <LoadingScreen />
@@ -49,7 +51,7 @@ export default async function Landing() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
           <Logo />
           <nav aria-label="Primary" className="hidden items-center gap-7 text-sm text-slate-400 md:flex">
-            <a href="#features" className="hover:text-white">Features</a><a href="#how" className="hover:text-white">How it works</a>
+            <a href="#features" className="hover:text-white">Features</a><Link href="/partners" className="hover:text-white">Partners</Link><a href="#how" className="hover:text-white">How it works</a>
             <a href="#mission" className="hover:text-white">Mission</a><a href="#pricing" className="hover:text-white">Pricing</a><a href="#faq" className="hover:text-white">FAQ</a>
           </nav>
           <div className="flex gap-2">
@@ -150,6 +152,17 @@ export default async function Landing() {
             </div>
           </div>
         </section>
+
+        {/* HIRING PARTNERS (only published partners with confirmed agreements) */}
+        {partnerList.length > 0 && <section aria-labelledby="partners" className="mx-auto max-w-7xl px-5 pb-24">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Hiring partners</p><h2 id="partners" className="mt-2 text-4xl font-semibold">Talk to recruiters who are hiring</h2></div>
+            <Link href="/partners" className="btn-ghost">See all partners <ArrowRight size={16} /></Link></div>
+          <div className="grid gap-4 md:grid-cols-3">{partnerList.slice(0, 6).map((p) => (
+            <Link key={p.id} href={`/partners/${p.slug}`} className="glass glass-hover flex items-center gap-4 p-5">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl font-display font-bold text-white" style={{ background: p.brandColor }} aria-hidden="true">{p.name.replace("DEMO ", "").split(" ").map((w) => w[0]).slice(0, 2).join("")}</div>
+              <div className="min-w-0"><div className="truncate font-semibold">{p.name}</div><div className="text-xs text-slate-400">{p.industry} · {p.recruiterCount} recruiter{p.recruiterCount === 1 ? "" : "s"}</div></div>
+            </Link>))}</div>
+        </section>}
 
         {/* TESTIMONIALS (examples) */}
         <section aria-labelledby="stories" className="mx-auto max-w-7xl px-5 pb-24">

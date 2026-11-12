@@ -55,6 +55,27 @@ async function main() {
   for (const a of articles) await db.insert(schema.articles).values({ ...a, status: "APPROVED", isDemo: true }).onConflictDoNothing();
   console.log("✓ demo articles");
 
+  // DEMO hiring partners: fictional companies and recruiters (example.com addresses, reserved 555-01xx numbers).
+  const demoPartners = [
+    { name: "DEMO Northwind Health", industry: "Healthcare", brandColor: "#0E9F8E", description: "DEMO PARTNER (fictional). A regional health system hiring patient-access, medical-billing and care-technician roles, with paid certification support for career changers.", hiringFor: ["Patient Care Technician", "Medical Billing Specialist", "Patient Access Rep"], locations: ["Baltimore, MD", "Remote (US)"], workModes: ["ONSITE", "HYBRID", "REMOTE"] as const, partnerSince: "2026",
+      recruiters: [{ name: "[DEMO] Alicia Moreno", title: "Talent Acquisition Partner, Clinical Support", email: "alicia.moreno@northwind-demo.example.com", phone: "(555) 010-2041", specialties: ["Patient care", "Entry-level"], workModes: ["ONSITE", "HYBRID"] as const },
+                   { name: "[DEMO] Ben Carter", title: "Recruiter, Revenue Cycle (Remote)", email: "ben.carter@northwind-demo.example.com", phone: null, specialties: ["Medical billing", "Remote roles"], workModes: ["REMOTE"] as const }] },
+    { name: "DEMO Contoso Labs", industry: "Technology", brandColor: "#6D28D9", description: "DEMO PARTNER (fictional). A software company with an apprenticeship pathway into junior developer, data analyst and IT support roles. No degree required for apprentices.", hiringFor: ["Junior Frontend Developer", "Data Analyst", "IT Support"], locations: ["Remote (US)", "Atlanta, GA"], workModes: ["REMOTE", "HYBRID"] as const, partnerSince: "2026",
+      recruiters: [{ name: "[DEMO] Priya Shah", title: "Early Careers Recruiter", email: "priya.shah@contoso-demo.example.com", phone: "(555) 010-3318", specialties: ["Apprenticeships", "Junior developers"], workModes: ["REMOTE", "HYBRID"] as const }] },
+    { name: "DEMO Fabrikam Staffing", industry: "Staffing Agency", brandColor: "#D97706", description: "DEMO PARTNER (fictional). A staffing agency placing candidates in customer service, administrative and warehouse roles, with temp-to-hire options.", hiringFor: ["Customer Support Specialist", "Administrative Assistant", "Warehouse Associate"], locations: ["Chicago, IL", "Houston, TX", "Remote (US)"], workModes: ["ONSITE", "REMOTE"] as const, partnerSince: "2026",
+      recruiters: [{ name: "[DEMO] Marcus Lee", title: "Staffing Manager, Customer Service", email: "marcus.lee@fabrikam-demo.example.com", phone: "(555) 010-4472", specialties: ["Call center", "Bilingual roles"], workModes: ["REMOTE", "ONSITE"] as const },
+                   { name: "[DEMO] Dana Brooks", title: "Recruiter, Logistics & Light Industrial", email: "dana.brooks@fabrikam-demo.example.com", phone: "(555) 010-4486", specialties: ["Warehouse", "Forklift"], workModes: ["ONSITE"] as const }] },
+  ];
+  const admin = await db.query.users.findFirst({ where: eq(schema.users.email, email) });
+  for (const dp of demoPartners) {
+    if (await db.query.partners.findFirst({ where: eq(schema.partners.name, dp.name) })) continue;
+    const { recruiters, workModes, ...rest } = dp;
+    const [p] = await db.insert(schema.partners).values({ ...rest, workModes: [...workModes], slug: dp.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"), jobCompanyNames: [dp.name],
+      status: "APPROVED", agreementConfirmedAt: new Date(), agreementConfirmedBy: admin!.id, isDemo: true }).returning();
+    await db.insert(schema.recruiters).values(recruiters.map((r) => ({ ...r, workModes: [...r.workModes], partnerId: p.id, consentConfirmedAt: new Date(), consentConfirmedBy: admin!.id, isDemo: true })));
+  }
+  console.log("✓ demo hiring partners & recruiters");
+
   await syncSources();
   if (process.env.ENABLE_DEMO_JOBS === "true" && process.env.NODE_ENV !== "production") {
     const r = await runSource(demo, "seed");

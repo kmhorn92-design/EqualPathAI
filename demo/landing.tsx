@@ -3,7 +3,7 @@
  * Uses the app's real lexicon (findKeywords) and fabrication guard (guardSuggestion).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Globe, Shuffle, Building2, Users, ArrowRight, ArrowDown, ShieldCheck, Sparkles, Check, X, FileText, Briefcase, KanbanSquare, GraduationCap, Wand2, Lock, Eye, HeartHandshake } from "lucide-react";
+import { Handshake, Globe, Shuffle, Building2, Users, ArrowRight, ArrowDown, ShieldCheck, Sparkles, Check, X, FileText, Briefcase, KanbanSquare, GraduationCap, Wand2, Lock, Eye, HeartHandshake } from "lucide-react";
 import { findKeywords } from "@/lib/resume/lexicon";
 import { guardSuggestion } from "@/lib/resume/analyze";
 
@@ -231,7 +231,7 @@ function Journey() {
 }
 
 /* ---------- page ---------- */
-export function Landing({ onEnter, onCoaches }: { onEnter: (to?: "studio" | "jobs" | "practice" | "learn") => void; onCoaches: (a?: "REMOTE" | "HYBRID" | "ONSITE") => void }) {
+export function Landing({ onEnter, onCoaches, onPartners, partners }: { onEnter: (to?: "studio" | "jobs" | "practice" | "learn") => void; onCoaches: (a?: "REMOTE" | "HYBRID" | "ONSITE") => void; onPartners: () => void; partners: { name: string; industry: string; color: string; recruiters: number }[] }) {
   const [leaving, setLeaving] = useState(false);
   const enter = (to?: "studio" | "jobs" | "practice" | "learn") => {
     if (reduced()) return onEnter(to);
@@ -322,6 +322,22 @@ export function Landing({ onEnter, onCoaches }: { onEnter: (to?: "studio" | "job
         </div>
       </section>
 
+      {/* PARTNERS */}
+      <section className="mx-auto max-w-6xl px-6 py-20">
+        <Reveal className="flex flex-wrap items-end justify-between gap-4">
+          <div><p className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">Hiring partners</p>
+            <h2 className="mt-2 max-w-3xl text-4xl font-semibold md:text-5xl">Talk to recruiters <span className="gradient-text">who are hiring.</span></h2>
+            <p className="mt-3 max-w-2xl text-slate-400">We partner with employers and staffing agencies committed to fair hiring. See their open roles and reach their recruiters by email or phone.</p></div>
+          <button onClick={onPartners} className="btn-ghost"><Handshake size={16} />Meet our partners</button>
+        </Reveal>
+        <div className="mt-10 grid gap-4 sm:grid-cols-2">{partners.map((p, i) => (
+          <Reveal key={p.name} delay={i * 100}><Tilt className="glass h-full p-5"><button onClick={onPartners} className="flex w-full items-center gap-3 text-left">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl font-display font-bold text-white" style={{ background: p.color }} aria-hidden="true">{p.name.replace("DEMO ", "").split(" ").map((w) => w[0]).slice(0, 2).join("")}</div>
+            <div className="min-w-0"><div className="truncate font-semibold">{p.name}</div><div className="text-xs text-slate-400">{p.industry} · {p.recruiters} recruiter{p.recruiters === 1 ? "" : "s"}</div></div>
+          </button></Tilt></Reveal>))}</div>
+        <p className="mt-4 text-center text-xs text-slate-500">Demo partners shown are fictional examples.</p>
+      </section>
+
       {/* PRINCIPLES */}
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="grid gap-5 md:grid-cols-3">{[
@@ -350,6 +366,7 @@ export function Landing({ onEnter, onCoaches }: { onEnter: (to?: "studio" | "job
             {([["studio", "Resume Studio"], ["jobs", "Job Board"], ["practice", "Practice tests"], ["learn", "Learning Hub"]] as const).map(([to, l]) => (
               <button key={to} onClick={() => enter(to)} className="chip px-3 py-1.5 hover:border-cyan-300/50 hover:text-white">{l} →</button>))}
             <button onClick={() => onCoaches()} className="chip px-3 py-1.5 hover:border-cyan-300/50 hover:text-white">Career Coaches →</button>
+            <button onClick={onPartners} className="chip px-3 py-1.5 hover:border-cyan-300/50 hover:text-white">Hiring Partners →</button>
           </div>
           <p className="mx-auto mt-8 max-w-md text-xs text-slate-500"><GraduationCap size={12} className="mr-1 inline" />Interactive demo. Sample data stays in this browser tab, and nothing is sent anywhere.</p>
         </Reveal>
